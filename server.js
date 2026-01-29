@@ -151,25 +151,35 @@ app.use('*', (req, res) => {
     res.status(404).json({ error: 'Route not found' });
 });
 
-// MongoDB connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/shopify-image-enricher', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-})
-.then(() => {
-    logger.info('Connected to MongoDB');
-})
-.catch((error) => {
-    logger.error('MongoDB connection error:', error);
-    process.exit(1);
-});
-
-// Start server
+// Start server first (non-blocking)
 app.listen(PORT, () => {
     logger.info(`🚀 BuckyDrop Shipping running on port ${PORT}`);
-    logger.info(`Environment: ${process.env.NODE_ENV}`);
+    logger.info(`Environment: ${process.env.NODE_ENV || 'undefined'}`);
+    logger.info(`MONGODB_URI: ${process.env.MONGODB_URI ? 'SET (' + process.env.MONGODB_URI.substring(0, 30) + '...)' : 'NOT SET'}`);
+    logger.info(`SHOPIFY_API_KEY: ${process.env.SHOPIFY_API_KEY ? 'SET' : 'NOT SET'}`);
     logger.info(`🚚 Ready to calculate shipping rates!`);
 });
+
+// MongoDB connection (non-blocking - don't exit on failure)
+const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/shopify-image-enricher';
+if (mongoUri && !mongoUri.includes('localhost')) {
+    mongoose.connect(mongoUri, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 10000, // 10 second timeout
+        socketTimeoutMS: 45000,
+    })
+    .then(() => {
+        logger.info('✅ Connected to MongoDB');
+    })
+    .catch((error) => {
+        logger.error('❌ MongoDB connection error:', error.message);
+        logger.warn('⚠️ App will continue without MongoDB. Some features may be limited.');
+        // Don't exit - let the app run without MongoDB
+    });
+} else {
+    logger.warn('⚠️ MONGODB_URI not set or using localhost. MongoDB features disabled.');
+}
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
