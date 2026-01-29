@@ -182,8 +182,13 @@ try {
 }
 
 // MongoDB connection (non-blocking - don't exit on failure)
+console.log('🔍 Checking MongoDB connection...');
 const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/shopify-image-enricher';
+console.log('MongoDB URI check:', mongoUri ? `SET (${mongoUri.substring(0, 30)}...)` : 'NOT SET');
+console.log('Is localhost?', mongoUri.includes('localhost'));
+
 if (mongoUri && !mongoUri.includes('localhost')) {
+    console.log('🔄 Attempting MongoDB connection...');
     mongoose.connect(mongoUri, {
         useNewUrlParser: true,
         useUnifiedTopology: true,
@@ -191,14 +196,17 @@ if (mongoUri && !mongoUri.includes('localhost')) {
         socketTimeoutMS: 45000,
     })
     .then(() => {
+        console.log('✅ Connected to MongoDB');
         logger.info('✅ Connected to MongoDB');
     })
     .catch((error) => {
+        console.error('❌ MongoDB connection error:', error.message);
         logger.error('❌ MongoDB connection error:', error.message);
         logger.warn('⚠️ App will continue without MongoDB. Some features may be limited.');
         // Don't exit - let the app run without MongoDB
     });
 } else {
+    console.warn('⚠️ MONGODB_URI not set or using localhost. MongoDB features disabled.');
     logger.warn('⚠️ MONGODB_URI not set or using localhost. MongoDB features disabled.');
 }
 
