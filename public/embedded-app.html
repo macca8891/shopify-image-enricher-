@@ -6,6 +6,15 @@
     <title>BuckyDrop Shipping</title>
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge-utils.js"></script>
+    <script>
+        // Wait for App Bridge to be fully loaded
+        window.addEventListener('load', function() {
+            console.log('Page loaded, checking App Bridge availability...');
+            console.log('window.shopify:', !!window.shopify);
+            console.log('window.shopify.AppBridge:', !!window.shopify?.AppBridge);
+            console.log('window.AppBridge:', !!window.AppBridge);
+        });
+    </script>
     <style>
         * {
             margin: 0;
@@ -138,35 +147,98 @@
         let app;
         let authenticatedFetch;
         
-        try {
-            // Extract App Bridge config from URL parameters
-            const urlParams = new URLSearchParams(window.location.search);
-            const apiKey = '862d69c809407d3bc3afceedcd9aad8e'; // From environment
-            const host = urlParams.get('host');
-            
-            if (host && window.shopify && window.shopify.createApp) {
-                // Initialize App Bridge 3.0
-                app = window.shopify.createApp({
-                    apiKey: apiKey,
-                    host: host
-                });
+        // Wait for App Bridge to load
+        function initAppBridge() {
+            try {
+                // Extract App Bridge config from URL parameters
+                const urlParams = new URLSearchParams(window.location.search);
+                const apiKey = '862d69c809407d3bc3afceedcd9aad8e';
+                const host = urlParams.get('host');
                 
-                console.log('✅ App Bridge initialized with config');
-                
-                // Get authenticated fetch
-                if (app && window.shopify && window.shopify.utils && window.shopify.utils.authenticatedFetch) {
-                    authenticatedFetch = window.shopify.utils.authenticatedFetch(app);
-                    console.log('✅ App Bridge authenticated fetch ready');
-                } else {
-                    console.warn('⚠️ authenticatedFetch not available, using regular fetch');
-                }
-            } else {
-                console.warn('⚠️ App Bridge not available, using regular fetch');
+                console.log('Initializing App Bridge...');
                 console.log('Host param:', host);
                 console.log('window.shopify:', !!window.shopify);
+                console.log('window.shopify.AppBridge:', !!window.shopify?.AppBridge);
+                console.log('window.AppBridge:', !!window.AppBridge);
+                
+                // Try different App Bridge initialization methods
+                if (host) {
+                    // Method 1: window.shopify.AppBridge.createApp (App Bridge 3.0)
+                    if (window.shopify && window.shopify.AppBridge && window.shopify.AppBridge.createApp) {
+                        app = window.shopify.AppBridge.createApp({
+                            apiKey: apiKey,
+                            host: host
+                        });
+                        console.log('✅ App Bridge initialized via window.shopify.AppBridge.createApp');
+                    }
+                    // Method 2: window.AppBridge.createApp
+                    else if (window.AppBridge && window.AppBridge.createApp) {
+                        app = window.AppBridge.createApp({
+                            apiKey: apiKey,
+                            host: host
+                        });
+                        console.log('✅ App Bridge initialized via window.AppBridge.createApp');
+                    }
+                    // Method 3: window.shopify.createApp (older API)
+                    else if (window.shopify && window.shopify.createApp) {
+                        app = window.shopify.createApp({
+                            apiKey: apiKey,
+                            host: host
+                        });
+                        console.log('✅ App Bridge initialized via window.shopify.createApp');
+                    }
+                    
+                    // Get authenticated fetch
+                    if (app) {
+                        // Try App Bridge utils
+                        if (window.shopify && window.shopify.utils && window.shopify.utils.authenticatedFetch) {
+                            authenticatedFetch = window.shopify.utils.authenticatedFetch(app);
+                            console.log('✅ App Bridge authenticated fetch ready');
+                        } else if (window.shopify && window.shopify.utils && typeof window.shopify.utils.authenticatedFetch === 'function') {
+                            authenticatedFetch = window.shopify.utils.authenticatedFetch(app);
+                            console.log('✅ App Bridge authenticated fetch ready (alternative)');
+                        } else {
+                            console.warn('⚠️ authenticatedFetch not available in window.shopify.utils');
+                            console.log('Available in window.shopify.utils:', Object.keys(window.shopify?.utils || {}));
+                        }
+                    } else {
+                        console.warn('⚠️ App Bridge app not created');
+                    }
+                } else {
+                    console.warn('⚠️ No host parameter found');
+                }
+                
+                if (!authenticatedFetch) {
+                    console.warn('⚠️ Using regular fetch (App Bridge authenticated fetch not available)');
+                }
+            } catch (e) {
+                console.error('❌ App Bridge initialization error:', e);
             }
-        } catch (e) {
-            console.error('❌ App Bridge initialization error:', e);
+        }
+        
+        // Initialize when App Bridge is ready
+        function waitForAppBridge() {
+            if (window.shopify || window.AppBridge) {
+                initAppBridge();
+            } else {
+                // Wait up to 5 seconds for App Bridge to load
+                let attempts = 0;
+                const maxAttempts = 50; // 50 * 100ms = 5 seconds
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (window.shopify || window.AppBridge || attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        initAppBridge();
+                    }
+                }, 100);
+            }
+        }
+        
+        // Start initialization
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', waitForAppBridge);
+        } else {
+            waitForAppBridge();
         }
 
         async function checkStatus() {
