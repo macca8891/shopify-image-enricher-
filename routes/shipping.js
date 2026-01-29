@@ -1695,16 +1695,62 @@ router.post('/register-carrier-service', async (req, res) => {
             );
             
             if (existingBuckyDrop) {
-                logger.info(`Carrier service already exists: ${existingBuckyDrop.id}`);
-                shopData.carrierServiceId = existingBuckyDrop.id.toString();
-                await shopData.save();
+                // Check if callback URL needs updating
+                const needsUpdate = existingBuckyDrop.callback_url !== callbackUrl;
                 
-                return res.json({
-                    success: true,
-                    carrierService: existingBuckyDrop,
-                    message: 'Carrier service already registered',
-                    alreadyExists: true
-                });
+                if (needsUpdate) {
+                    logger.info(`Carrier service exists but callback URL is outdated. Updating...`);
+                    logger.info(`  Old URL: ${existingBuckyDrop.callback_url}`);
+                    logger.info(`  New URL: ${callbackUrl}`);
+                    
+                    // Update existing carrier service
+                    try {
+                        const updateResponse = await client.put({
+                            path: `carrier_services/${existingBuckyDrop.id}`,
+                            data: {
+                                carrier_service: {
+                                    callback_url: callbackUrl,
+                                    format: 'json'
+                                }
+                            }
+                        });
+                        
+                        logger.info(`✅ Carrier service updated successfully`);
+                        shopData.carrierServiceId = existingBuckyDrop.id.toString();
+                        await shopData.save();
+                        
+                        return res.json({
+                            success: true,
+                            carrierService: updateResponse.body.carrier_service,
+                            message: 'Carrier service updated with new callback URL',
+                            updated: true
+                        });
+                    } catch (updateError) {
+                        logger.error('Failed to update carrier service:', updateError);
+                        // Fall through to delete and recreate
+                        logger.info('Will delete and recreate carrier service...');
+                        
+                        // Delete old service
+                        try {
+                            await client.delete({ path: `carrier_services/${existingBuckyDrop.id}` });
+                            logger.info(`Deleted old carrier service: ${existingBuckyDrop.id}`);
+                        } catch (deleteError) {
+                            logger.warn('Could not delete old carrier service:', deleteError.message);
+                        }
+                    }
+                } else {
+                    // URL is correct, just return existing
+                    logger.info(`Carrier service already registered with correct URL: ${existingBuckyDrop.id}`);
+                    shopData.carrierServiceId = existingBuckyDrop.id.toString();
+                    await shopData.save();
+                    
+                    return res.json({
+                        success: true,
+                        carrierService: existingBuckyDrop,
+                        message: 'Carrier service already registered',
+                        alreadyExists: true
+                    });
+                }
             }
         } catch (checkError) {
             logger.warn('Could not check for existing carrier services:', checkError.message);
