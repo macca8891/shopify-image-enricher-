@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopify Image Enricher - AI-Powered Product Images</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <h1>🖼️ Shopify Image Enricher</h1>
+                    <p>AI-Powered Product Image Discovery & Analysis</p>
+                </div>
+                <div class="shop-info">
+                    <div class="shop-badge">
+                        <strong id="shopName">Loading...</strong>
+                        <span class="plan-badge" id="shopPlan">FREE</span>
+                    </div>
+                    <div class="api-usage">
+                        <span>📊 API Usage: </span>
+                        <strong id="apiUsage">0/100</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="container">
+            <div class="nav-tabs">
+                <button class="nav-tab active" data-tab="dashboard">📊 Dashboard</button>
+                <button class="nav-tab" data-tab="products">📦 Products</button>
+                <button class="nav-tab" data-tab="bulk">🔄 Bulk Process</button>
+                <button class="nav-tab" data-tab="settings">⚙️ Settings</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            
+            <!-- Dashboard Tab -->
+            <div id="dashboard" class="tab-content active">
+                <div class="page-header">
+                    <div>
+                        <h2>Dashboard</h2>
+                        <p>Overview of your product image enrichment progress</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="refreshStats()">🔄 Refresh</button>
+                        <button class="btn btn-primary" onclick="importProducts()">📥 Import Products</button>
+                    </div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📦</div>
+                        <div class="stat-content">
+                            <h3 id="totalProducts">0</h3>
+                            <p>Total Products</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🖼️</div>
+                        <div class="stat-content">
+                            <h3 id="withImages">0</h3>
+                            <p>With Original Images</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-content">
+                            <h3 id="completedProducts">0</h3>
+                            <p>Completed</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⏳</div>
+                        <div class="stat-content">
+                            <h3 id="pendingProducts">0</h3>
+                            <p>Pending</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="actions-section">
+                    <h3>🚀 Quick Actions</h3>
+                    <div class="action-buttons">
+                        <button class="btn btn-success" onclick="processAllPending()">
+                            ⚡ Process All Pending
+                        </button>
+                        <button class="btn btn-secondary" onclick="switchTab('products')">
+                            📋 View All Products
+                        </button>
+                        <button class="btn btn-secondary" onclick="switchTab('bulk')">
+                            📤 Bulk Upload
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Tab -->
+            <div id="products" class="tab-content">
+                <div class="page-header">
+                    <div>
+                        <h2>Products</h2>
+                        <p>Manage and process product images</p>
+                    </div>
+                    <div class="header-actions">
+                        <div class="search-box">
+                            <input type="text" 
+                                   id="productSearch" 
+                                   placeholder="🔍 Search products..." 
+                                   onchange="searchProducts()">
+                        </div>
+                        <select id="statusFilter" onchange="filterProducts()">
+                            <option value="">All Statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="analyzing">Analyzing</option>
+                            <option value="searching">Searching</option>
+                            <option value="completed">Completed</option>
+                            <option value="failed">Failed</option>
+                        </select>
+                        <select id="imageFilter" onchange="filterProducts()">
+                            <option value="">All Products</option>
+                            <option value="true">With Images</option>
+                            <option value="false">Without Images</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Products Grid -->
+                <div id="productsGrid" class="products-grid">
+                    <!-- Products will be dynamically loaded here -->
+                    <p style="text-align: center; color: #718096; padding: 2rem;">
+                        Click "📥 Import Products" to load products from your Shopify store
+                    </p>
+                </div>
+
+                <!-- Pagination -->
+                <div id="pagination" class="pagination">
+                    <!-- Pagination will be dynamically loaded here -->
+                </div>
+            </div>
+
+            <!-- Bulk Process Tab -->
+            <div id="bulk" class="tab-content">
+                <div class="page-header">
+                    <div>
+                        <h2>Bulk Image Processing</h2>
+                        <p>Upload CSV and process multiple products with custom settings</p>
+                    </div>
+                </div>
+
+                <div class="bulk-section">
+                    <!-- CSV Upload -->
+                    <div class="csv-upload">
+                        <h3>📁 Upload CSV File</h3>
+                        <div class="upload-area" id="uploadArea" onclick="document.getElementById('csvFile').click()">
+                            <div class="upload-content">
+                                <div class="upload-icon">📤</div>
+                                <p>Click to browse or drag and drop your CSV file here</p>
+                                <p style="font-size: 0.75rem; opacity: 0.7;">Supports up to 10MB CSV files</p>
+                            </div>
+                            <input type="file" id="csvFile" accept=".csv" style="display: none;">
+                        </div>
+                        <div id="fileInfo" class="file-info" style="display: none; margin-top: 1rem;">
+                            <span>📄 <strong id="fileName"></strong></span>
+                            <button class="btn btn-sm btn-secondary" onclick="clearFile()">❌ Remove</button>
+                        </div>
+                        <button class="btn btn-secondary" onclick="generateSampleCSV()" style="margin-top: 1rem;">
+                            📋 Generate Sample CSV
+                        </button>
+                    </div>
+
+                    <!-- Pipeline Settings -->
+                    <div class="pipeline-settings">
+                        <h3>🎨 Processing Settings</h3>
+                        <div class="settings-grid">
+                            <div class="setting-group">
+                                <label>Background Color</label>
+                                <input type="color" id="bgColor" value="#FFFFFF">
+                            </div>
+                            <div class="setting-group">
+                                <label>Target Size (px)</label>
+                                <input type="number" id="targetSize" value="2048" min="512" max="4096">
+                            </div>
+                            <div class="setting-group">
+                                <label>Concurrency</label>
+                                <input type="number" id="concurrency" value="3" min="1" max="10">
+                            </div>
+                            <div class="setting-group">
+                                <label>Replace Strategy</label>
+                                <select id="replaceStrategy">
+                                    <option value="append">Append to Existing</option>
+                                    <option value="replace_all">Replace All Images</option>
+                                    <option value="replace_featured">Replace Featured Only</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Watermark Settings -->
+                    <div class="watermark-settings">
+                        <h3>💧 Watermark Settings</h3>
+                        <div class="setting-group">
+                            <label>
+                                <input type="checkbox" id="watermarkEnabled">
+                                Enable Watermark
+                            </label>
+                        </div>
+                        <div class="settings-grid">
+                            <div class="setting-group">
+                                <label>Watermark Text</label>
+                                <input type="text" id="watermarkText" placeholder="Your Brand Name">
+                            </div>
+                            <div class="setting-group">
+                                <label>Opacity: <strong id="watermarkOpacityValue">0.12</strong></label>
+                                <input type="range" id="watermarkOpacity" min="0" max="1" step="0.01" value="0.12">
+                            </div>
+                            <div class="setting-group">
+                                <label>Scale: <strong id="watermarkScaleValue">0.35</strong></label>
+                                <input type="range" id="watermarkScale" min="0.1" max="1" step="0.05" value="0.35">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Processing Options -->
+                    <div class="processing-options">
+                        <h3>⚙️ Processing Options</h3>
+                        <div class="option-group">
+                            <label>
+                                <input type="checkbox" id="dryRun">
+                                Dry Run (test without uploading)
+                            </label>
+                            <label>
+                                <input type="checkbox" id="pipelineEnabled">
+                                Enable Pipeline
+                            </label>
+                        </div>
+                        <div class="setting-group" style="margin-top: 1rem;">
+                            <label>Limit Rows (optional)</label>
+                            <input type="number" id="limitRows" placeholder="Leave empty for all rows">
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="pipeline-actions">
+                        <button class="btn btn-success" onclick="startPipelineProcessing()">
+                            🚀 Start Processing
+                        </button>
+                        <button class="btn btn-secondary" onclick="savePipelineSettings()">
+                            💾 Save Settings
+                        </button>
+                    </div>
+
+                    <!-- Progress Section -->
+                    <div id="pipelineProgress" class="pipeline-progress" style="display: none;">
+                        <h3>⏳ Processing...</h3>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <p class="progress-text" id="progressText">Starting...</p>
+                        <div class="progress-log" id="progressLog"></div>
+                    </div>
+
+                    <!-- Results Section -->
+                    <div id="pipelineResults" class="pipeline-results" style="display: none;">
+                        <h3>✅ Processing Complete</h3>
+                        <div class="results-summary" id="resultsSummary"></div>
+                        <div class="results-details" id="resultsDetails"></div>
+                    </div>
+
+                    <!-- Selected Products for Batch Processing -->
+                    <div id="selectedProducts" class="selected-products">
+                        <h3>Selected Products (0)</h3>
+                        <div class="bulk-options">
+                            <div class="option-group">
+                                <label>
+                                    <input type="checkbox" id="bulkAnalyze" checked>
+                                    Analyze Images
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="bulkSearch" checked>
+                                    Search for New Images
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="bulkAutoSelect">
+                                    Auto-Select Best Images
+                                </label>
+                            </div>
+                            <div class="setting-group">
+                                <label>Max Images per Product</label>
+                                <input type="number" id="bulkMaxImages" value="5" min="1" max="20">
+                            </div>
+                        </div>
+                        <div class="bulk-actions">
+                            <button class="btn btn-secondary" onclick="selectAllProducts()">
+                                📋 Select All
+                            </button>
+                            <button class="btn btn-secondary" onclick="selectPendingProducts()">
+                                ⏳ Select Pending
+                            </button>
+                            <button class="btn btn-success" onclick="startBulkProcessing()">
+                                🚀 Start Bulk Processing
+                            </button>
+                        </div>
+                        <div id="bulkProgress" class="bulk-progress" style="display: none;">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progressFill"></div>
+                            </div>
+                            <p class="progress-text" id="progressText">Processing...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="settings" class="tab-content">
+                <div class="page-header">
+                    <div>
+                        <h2>Settings</h2>
+                        <p>Configure image search and AI analysis preferences</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="resetSettings()">🔄 Reset to Defaults</button>
+                        <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+                    </div>
+                </div>
+
+                <div class="settings-grid">
+                    <!-- Image Search Settings -->
+                    <div class="settings-section">
+                        <h3>🔍 Image Search</h3>
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="searchEnabled" checked>
+                                Enable Image Search
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label>Max Results</label>
+                            <input type="number" id="maxResults" value="20" min="5" max="50">
+                        </div>
+                        <div class="setting-item">
+                            <label>Safe Search</label>
+                            <select id="safeSearch">
+                                <option value="off">Off</option>
+                                <option value="moderate" selected>Moderate</option>
+                                <option value="strict">Strict</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label>Minimum Width (px)</label>
+                            <input type="number" id="minWidth" value="400" min="200" max="2000">
+                        </div>
+                        <div class="setting-item">
+                            <label>Minimum Height (px)</label>
+                            <input type="number" id="minHeight" value="400" min="200" max="2000">
+                        </div>
+                    </div>
+
+                    <!-- AI Analysis Settings -->
+                    <div class="settings-section">
+                        <h3>🤖 AI Analysis</h3>
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="analysisEnabled" checked>
+                                Enable AI Analysis
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="detectLabels" checked>
+                                Detect Labels
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="detectText" checked>
+                                Detect Text
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="detectColors" checked>
+                                Analyze Colors
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="safeSearchFilter" checked>
+                                Safe Search Filter
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label>Confidence Threshold: <strong id="confidenceValue">0.7</strong></label>
+                            <input type="range" id="confidenceThreshold" min="0.1" max="1" step="0.1" value="0.7">
+                        </div>
+                    </div>
+
+                    <!-- Auto-Processing Settings -->
+                    <div class="settings-section">
+                        <h3>⚡ Auto-Processing</h3>
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="autoProcessing">
+                                Enable Auto-Processing
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="processNewProducts">
+                                Process New Products Automatically
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="autoSelectImages">
+                                Auto-Select Best Images
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label>Max Images per Product</label>
+                            <input type="number" id="maxImagesPerProduct" value="5" min="1" max="20">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Product Modal -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalProductTitle">Product Details</h2>
+                <button class="modal-close" onclick="closeProductModal()">✕</button>
+            </div>
+            <div class="modal-body" id="modalProductBody">
+                <!-- Product details will be dynamically loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Log -->
+    <div class="activity-log">
+        <div class="log-header">
+            <h3>📋 Activity Log</h3>
+            <button onclick="clearLog()">Clear</button>
+        </div>
+        <div class="log-content" id="logContent">
+            <!-- Log messages will appear here -->
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="/js/app.js"></script>
+</body>
+</html>
+
+
+
+
+

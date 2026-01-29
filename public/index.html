@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopify Image Enricher - Redirecting...</title>
+    <script>
+        // Redirect to the new dashboard
+        window.location.href = '/dashboard.html' + window.location.search;
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .control-group input, .control-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .control-row {
+            display: flex;
+            gap: 15px;
+        }
+        .control-row .control-group {
+            flex: 1;
+        }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #005a87;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .product-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .product-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .product-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+        }
+        .product-card p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.processing {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status.completed {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin: 10px 0;
+        }
+        .upload-area.dragover {
+            border-color: #007cba;
+            background-color: #f0f8ff;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #007cba;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div style="text-align: center; max-width: 600px;">
+        <h1 style="font-size: 3rem; margin-bottom: 1rem;">🖼️</h1>
+        <h2 style="font-size: 2rem; margin-bottom: 1rem;">Shopify Image Enricher</h2>
+        <p style="font-size: 1.25rem; margin-bottom: 2rem; opacity: 0.9;">
+            AI-Powered Product Image Discovery & Analysis
+        </p>
+        <div style="background: rgba(255, 255, 255, 0.1); padding: 1.5rem; border-radius: 1rem; backdrop-filter: blur(10px);">
+            <p style="margin-bottom: 1rem;">Redirecting to dashboard...</p>
+            <div style="width: 100%; height: 4px; background: rgba(255, 255, 255, 0.3); border-radius: 2px; overflow: hidden;">
+                <div style="width: 0%; height: 100%; background: white; animation: loading 2s ease-in-out infinite;"></div>
+            </div>
+            <p style="margin-top: 1rem; font-size: 0.875rem; opacity: 0.7;">
+                If you're not redirected, <a href="/dashboard.html" style="color: white; font-weight: bold;">click here</a>
+            </p>
+        </div>
+    </div>
+    
+    <style>
+        @keyframes loading {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+    </style>
+
+    <!-- Legacy content removed - now redirecting to dashboard.html -->
+    <div style="display: none;" class="controls">
+        <h3>⚙️ Processing Settings</h3>
+        
+        <!-- Canvas Settings -->
+        <h4>📐 Canvas Settings</h4>
+        <div class="control-row">
+            <div class="control-group">
+                <label>Canvas Width:</label>
+                <input type="number" id="canvasWidth" value="2048" min="512" max="4096">
+            </div>
+            <div class="control-group">
+                <label>Canvas Height:</label>
+                <input type="number" id="canvasHeight" value="2048" min="512" max="4096">
+            </div>
+        </div>
+
+        <div class="control-row">
+            <div class="control-group">
+                <label>Margin (px):</label>
+                <input type="number" id="margin" value="120" min="0" max="200">
+            </div>
+            <div class="control-group">
+                <label>Resize Mode:</label>
+                <select id="resizeMode">
+                    <option value="contain">Contain (fit within margins)</option>
+                    <option value="cover">Cover (fill canvas)</option>
+                    <option value="fill">Fill (stretch to fit)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Background Settings -->
+        <h4>🎨 Background Settings</h4>
+        <div class="control-row">
+            <div class="control-group">
+                <label>Background Color:</label>
+                <input type="color" id="backgroundColor" value="#FFFFFF">
+            </div>
+            <div class="control-group">
+                <label>
+                    <input type="checkbox" id="addBackground" checked>
+                    Add Background Color
+                </label>
+            </div>
+        </div>
+
+        <!-- Quality Settings -->
+        <h4>⚡ Quality & Enhancement</h4>
+        <div class="control-row">
+            <div class="control-group">
+                <label>Output Quality:</label>
+                <input type="range" id="quality" min="10" max="100" value="90">
+                <span id="qualityValue">90</span>%
+            </div>
+            <div class="control-group">
+                <label>
+                    <input type="checkbox" id="enhanceQuality">
+                    Enhance Image Quality
+                </label>
+            </div>
+        </div>
+
+        <div class="control-row">
+            <div class="control-group">
+                <label>
+                    <input type="checkbox" id="sharpen">
+                    Apply Sharpening
+                </label>
+            </div>
+            <div class="control-group">
+                <label>Output Format:</label>
+                <select id="outputFormat">
+                    <option value="png">PNG</option>
+                    <option value="jpg">JPG</option>
+                    <option value="webp">WebP</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Visual Preview -->
+        <h4>👁️ Preview & Position</h4>
+        <div class="control-group">
+            <label>Preview Image:</label>
+            <input type="file" id="previewImage" accept="image/*">
+            <button id="loadPreviewBtn" class="btn-secondary">🖼️ Load Preview</button>
+            <div id="previewContainer" style="display: none; margin-top: 10px; position: relative; border: 1px solid #ddd;">
+                <img id="previewImg" style="max-width: 400px; max-height: 400px;">
+                <div id="watermarkPreview" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; opacity: 0.5; font-size: 24px; font-weight: bold; color: rgba(0,0,0,0.7);">SPM</div>
+                <p style="font-size: 12px; color: #666; margin-top: 5px;">💡 Click on the image to position the watermark</p>
+            </div>
+        </div>
+
+        <!-- Logo Settings -->
+        <h4>🏷️ Logo Watermark</h4>
+        <div class="control-row">
+            <div class="control-group">
+                <label>Upload Logo:</label>
+                <input type="file" id="logoUpload" accept="image/*">
+                <button id="uploadLogoBtn" class="btn-secondary">📁 Upload Logo</button>
+                <div id="logoPreview" style="display: none; margin-top: 10px;">
+                    <img id="logoPreviewImg" style="max-width: 100px; max-height: 100px; border: 1px solid #ddd;">
+                    <p id="logoFileName"></p>
+                </div>
+            </div>
+            <div class="control-group">
+                <label>Logo Scale:</label>
+                <input type="range" id="logoScale" min="0.1" max="1.0" step="0.1" value="0.3">
+                <span id="logoScaleValue">0.3</span>
+            </div>
+        </div>
+
+        <!-- Text & Watermark Settings -->
+        <h4>📝 Text & Watermark</h4>
+        <div class="control-group">
+            <label>Watermark Type:</label>
+            <div style="margin: 10px 0;">
+                <label style="display: inline-block; margin-right: 20px;">
+                    <input type="radio" name="watermarkType" value="text" checked> Text Watermark
+                </label>
+                <label style="display: inline-block;">
+                    <input type="radio" name="watermarkType" value="logo"> Logo Watermark
+                </label>
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Watermark Text:</label>
+            <input type="text" id="watermarkText" placeholder="Enter watermark text (optional)" value="SPM">
+        </div>
+
+        <div class="control-group">
+            <label>Custom Text (bottom):</label>
+            <input type="text" id="addText" placeholder="Enter custom text for bottom of image" value="">
+        </div>
+
+        <div class="control-row">
+            <div class="control-group">
+                <label>Watermark Opacity:</label>
+                <input type="range" id="watermarkOpacity" min="0" max="1" step="0.1" value="0.3">
+                <span id="opacityValue">0.3</span>
+            </div>
+            <div class="control-group">
+                <label>Watermark Scale:</label>
+                <input type="range" id="watermarkScale" min="0.1" max="1" step="0.1" value="0.5">
+                <span id="scaleValue">0.5</span>
+            </div>
+        </div>
+
+        <!-- Logo Settings -->
+        <h4>🏷️ Logo Settings</h4>
+        <div class="control-group">
+            <label>Logo Path (optional):</label>
+            <input type="text" id="addLogo" placeholder="Enter path to logo file">
+        </div>
+
+        <div class="control-group">
+            <label>📁 Upload Image File (Alternative to using existing product images):</label>
+            <div class="upload-area" id="uploadArea">
+                <p>Drag and drop an image file here or click to browse</p>
+                <input type="file" id="imageFile" accept="image/*" style="display: none;">
+                <button onclick="document.getElementById('imageFile').click()">Choose File</button>
+            </div>
+            <div id="fileInfo" style="display: none;">
+                <p>Selected: <span id="fileName"></span></p>
+            </div>
+            <p style="font-size: 12px; color: #666; margin-top: 5px;">
+                💡 First select a file above, then click "📁 Upload & Process" on any product
+            </p>
+        </div>
+
+        <button onclick="loadProducts()">📥 Import Products from Shopify</button>
+        <button onclick="processAllProducts()" id="processAllBtn" disabled>🚀 Process All Products</button>
+        <button onclick="clearLog()">🗑️ Clear Log</button>
+    </div>
+
+    <div id="products"></div>
+
+    <div class="log" id="log"></div>
+    
+    <script>
+        let products = [];
+        let processingQueue = [];
+        let isProcessing = false;
+
+        // Update range value displays
+        document.getElementById('watermarkOpacity').addEventListener('input', function() {
+            document.getElementById('opacityValue').textContent = this.value;
+        });
+
+        document.getElementById('watermarkScale').addEventListener('input', function() {
+            document.getElementById('scaleValue').textContent = this.value;
+        });
+
+        document.getElementById('quality').addEventListener('input', function() {
+            document.getElementById('qualityValue').textContent = this.value;
+        });
+
+        // Logo upload functionality
+        document.getElementById('uploadLogoBtn').addEventListener('click', async () => {
+            const fileInput = document.getElementById('logoUpload');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a logo file first');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('logo', file);
+            
+            try {
+                const response = await fetch('/api/upload-logo', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Show logo preview
+                    const preview = document.getElementById('logoPreview');
+                    const previewImg = document.getElementById('logoPreviewImg');
+                    const fileName = document.getElementById('logoFileName');
+                    
+                    previewImg.src = `/${result.logoPath}`;
+                    fileName.textContent = result.filename;
+                    preview.style.display = 'block';
+                    
+                    // Store logo path for processing
+                    window.currentLogoPath = result.logoPath;
+                    
+                    // Update preview if it's visible
+                    updateWatermarkPreview();
+                    
+                    console.log('Logo uploaded successfully:', result.filename);
+                } else {
+                    alert('Logo upload failed: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Logo upload error:', error);
+                alert('Logo upload failed');
+            }
+        });
+
+        // Logo scale slider
+        document.getElementById('logoScale').addEventListener('input', function() {
+            document.getElementById('logoScaleValue').textContent = this.value;
+        });
+
+        // Preview functionality
+        document.getElementById('loadPreviewBtn').addEventListener('click', () => {
+            const fileInput = document.getElementById('previewImage');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a preview image first');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const previewImg = document.getElementById('previewImg');
+                const previewContainer = document.getElementById('previewContainer');
+                
+                previewImg.src = e.target.result;
+                previewContainer.style.display = 'block';
+                
+                // Update watermark preview based on current settings
+                updateWatermarkPreview();
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Update watermark preview when settings change
+        function updateWatermarkPreview() {
+            const watermarkPreview = document.getElementById('watermarkPreview');
+            const watermarkText = document.getElementById('watermarkText').value;
+            const watermarkOpacity = document.getElementById('watermarkOpacity').value;
+            const watermarkScale = document.getElementById('watermarkScale').value;
+            const logoScale = document.getElementById('logoScale').value;
+            const watermarkType = document.querySelector('input[name="watermarkType"]:checked').value;
+            
+            // Clear previous content
+            watermarkPreview.innerHTML = '';
+            watermarkPreview.style.backgroundImage = 'none';
+            
+            // Show watermark based on selected type
+            if (watermarkType === 'logo' && window.currentLogoPath) {
+                // Show logo watermark
+                watermarkPreview.style.backgroundImage = `url(/${window.currentLogoPath})`;
+                watermarkPreview.style.backgroundSize = `${100 * logoScale}px ${100 * logoScale}px`;
+                watermarkPreview.style.backgroundRepeat = 'no-repeat';
+                watermarkPreview.style.backgroundPosition = 'center';
+                watermarkPreview.style.width = `${100 * logoScale}px`;
+                watermarkPreview.style.height = `${100 * logoScale}px`;
+                watermarkPreview.style.opacity = watermarkOpacity;
+            } else if (watermarkType === 'text' && watermarkText) {
+                // Show text watermark
+                watermarkPreview.textContent = watermarkText;
+                watermarkPreview.style.opacity = watermarkOpacity;
+                watermarkPreview.style.fontSize = (24 * watermarkScale) + 'px';
+                watermarkPreview.style.width = 'auto';
+                watermarkPreview.style.height = 'auto';
+                watermarkPreview.style.backgroundImage = 'none';
+            } else {
+                watermarkPreview.textContent = '';
+            }
+        }
+
+        // Update preview when watermark settings change
+        document.getElementById('watermarkText').addEventListener('input', updateWatermarkPreview);
+        document.getElementById('watermarkOpacity').addEventListener('input', updateWatermarkPreview);
+        document.getElementById('watermarkScale').addEventListener('input', updateWatermarkPreview);
+        document.getElementById('logoScale').addEventListener('input', updateWatermarkPreview);
+        
+        // Update preview when watermark type changes
+        document.querySelectorAll('input[name="watermarkType"]').forEach(radio => {
+            radio.addEventListener('change', updateWatermarkPreview);
+        });
+
+        // Click to position watermark
+        document.addEventListener('click', function(e) {
+            if (e.target.id === 'previewImg') {
+                console.log('Clicked on preview image!');
+                const previewContainer = document.getElementById('previewContainer');
+                const watermarkPreview = document.getElementById('watermarkPreview');
+                
+                if (previewContainer.style.display !== 'none') {
+                    const rect = previewContainer.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    // Convert to percentage
+                    const xPercent = (x / rect.width) * 100;
+                    const yPercent = (y / rect.height) * 100;
+                    
+                    // Update watermark position
+                    watermarkPreview.style.left = xPercent + '%';
+                    watermarkPreview.style.top = yPercent + '%';
+                    watermarkPreview.style.transform = 'translate(-50%, -50%)';
+                    
+                    console.log(`Watermark positioned at ${xPercent.toFixed(1)}%, ${yPercent.toFixed(1)}%`);
+                }
+            }
+        });
+
+        // File upload handling
+        const uploadArea = document.getElementById('uploadArea');
+        const imageFile = document.getElementById('imageFile');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+
+        uploadArea.addEventListener('click', () => imageFile.click());
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                imageFile.files = files;
+                handleFileSelect();
+            }
+        });
+
+        imageFile.addEventListener('change', handleFileSelect);
+
+        function handleFileSelect() {
+            const file = imageFile.files[0];
+            if (file) {
+                fileName.textContent = file.name;
+                fileInfo.style.display = 'block';
+            }
+        }
+
+        async function loadProducts() {
+            log('Loading products from Shopify...');
+            try {
+                const response = await fetch('/api/products');
+                products = await response.json();
+                
+                const container = document.getElementById('products');
+                container.innerHTML = `
+                    <h3>📦 Products (${products.length} found)</h3>
+                    <div class="products-grid">
+                        ${products.map(product => `
+                            <div class="product-card">
+                                <img src="${product.images[0]?.src || 'https://via.placeholder.com/300x200?text=No+Image'}" 
+                                     alt="${product.title}" 
+                                     onerror="this.src='https://via.placeholder.com/300x200?text=No+Image'">
+                                <h3>${product.title}</h3>
+                                <p><strong>ID:</strong> ${product.id}</p>
+                                <p><strong>Images:</strong> ${product.images ? product.images.length : 0}</p>
+                                <p><strong>Status:</strong> <span class="status" id="status-${product.id}">Ready</span></p>
+                                <button onclick="processProduct(${product.id}, '${product.images[0]?.src || ''}')" 
+                                        id="btn-${product.id}">
+                                    🖼️ Process Image
+                                </button>
+                                <button onclick="uploadAndProcess(${product.id})" 
+                                        id="upload-btn-${product.id}">
+                                    📁 Upload & Process
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                log(`✅ Loaded ${products.length} products successfully`);
+                document.getElementById('processAllBtn').disabled = false;
+            } catch (error) {
+                log(`❌ Error loading products: ${error.message}`);
+            }
+        }
+
+        async function processProduct(productId, imageUrl) {
+            if (!imageUrl) {
+                log(`❌ Product ${productId} has no image to process`);
+                return;
+            }
+
+            const btn = document.getElementById(`btn-${productId}`);
+            const status = document.getElementById(`status-${productId}`);
+            
+            btn.disabled = true;
+            status.textContent = 'Processing...';
+            status.className = 'status processing';
+
+            log(`🔄 Processing product ${productId}...`);
+
+            try {
+                const options = getProcessingOptions();
+                const response = await fetch('/api/process-images', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        productId, 
+                        imageUrl, 
+                        options 
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    log(`✅ Product ${productId} processed successfully`);
+                    status.textContent = 'Completed';
+                    status.className = 'status completed';
+                } else {
+                    throw new Error(result.message || 'Processing failed');
+                }
+            } catch (error) {
+                log(`❌ Error processing product ${productId}: ${error.message}`);
+                status.textContent = 'Error';
+                status.className = 'status error';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function uploadAndProcess(productId) {
+            const file = imageFile.files[0];
+            if (!file) {
+                log('❌ Please select an image file first');
+                log('💡 Tip: Click "Choose File" button or drag & drop an image file');
+                return;
+            }
+
+            const btn = document.getElementById(`upload-btn-${productId}`);
+            const status = document.getElementById(`status-${productId}`);
+            
+            btn.disabled = true;
+            status.textContent = 'Uploading...';
+            status.className = 'status processing';
+
+            log(`📁 Uploading and processing file for product ${productId}...`);
+
+            try {
+                const formData = new FormData();
+                formData.append('image', file);
+                formData.append('productId', productId);
+                formData.append('options', JSON.stringify(getProcessingOptions()));
+
+                const response = await fetch('/api/upload-process', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    log(`✅ File uploaded and processed for product ${productId}`);
+                    status.textContent = 'Completed';
+                    status.className = 'status completed';
+                } else {
+                    throw new Error(result.message || 'Upload processing failed');
+                }
+            } catch (error) {
+                log(`❌ Error uploading/processing for product ${productId}: ${error.message}`);
+                status.textContent = 'Error';
+                status.className = 'status error';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function processAllProducts() {
+            if (isProcessing) return;
+            
+            isProcessing = true;
+            document.getElementById('processAllBtn').disabled = true;
+            document.getElementById('processAllBtn').textContent = 'Processing...';
+
+            log('🚀 Starting batch processing of all products...');
+
+            for (const product of products) {
+                if (product.images && product.images.length > 0) {
+                    await processProduct(product.id, product.images[0].src);
+                    // Add delay to avoid rate limiting
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+            }
+
+            log('✅ Batch processing completed');
+            isProcessing = false;
+            document.getElementById('processAllBtn').disabled = false;
+            document.getElementById('processAllBtn').textContent = '🚀 Process All Products';
+        }
+
+        function getProcessingOptions() {
+            return {
+                width: parseInt(document.getElementById('canvasWidth').value),
+                height: parseInt(document.getElementById('canvasHeight').value),
+            backgroundColor: document.getElementById('backgroundColor').value,
+            watermarkText: document.querySelector('input[name="watermarkType"]:checked').value === 'text' ? document.getElementById('watermarkText').value : '',
+            watermarkOpacity: parseFloat(document.getElementById('watermarkOpacity').value),
+            watermarkScale: parseFloat(document.getElementById('watermarkScale').value),
+            logoScale: parseFloat(document.getElementById('logoScale').value),
+            format: document.getElementById('outputFormat').value,
+            margin: parseInt(document.getElementById('margin').value),
+            addBackground: document.getElementById('addBackground').checked,
+            addText: document.getElementById('addText').value,
+            addLogo: document.querySelector('input[name="watermarkType"]:checked').value === 'logo' ? (window.currentLogoPath || '') : '',
+                resizeMode: document.getElementById('resizeMode').value,
+                quality: parseInt(document.getElementById('quality').value),
+                sharpen: document.getElementById('sharpen').checked,
+                enhanceQuality: document.getElementById('enhanceQuality').checked
+            };
+        }
+
+        function log(message) {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.innerHTML += `[${timestamp}] ${message}<br>`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+    </script>
+</body>
+</html>

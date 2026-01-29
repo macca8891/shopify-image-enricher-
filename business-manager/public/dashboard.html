@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Manager - Daily Follow-ups</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stat-card h3 {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .actions {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #f5f7fa;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .section {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .section-header h2 {
+            font-size: 1.25rem;
+            color: #333;
+        }
+
+        .section-content {
+            padding: 1.5rem;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .follow-up-item {
+            padding: 1rem;
+            border-bottom: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .follow-up-item:hover {
+            background: #f8f9fa;
+        }
+
+        .follow-up-item:last-child {
+            border-bottom: none;
+        }
+
+        .follow-up-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 0.5rem;
+        }
+
+        .contact-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .priority-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .priority-urgent {
+            background: #fee;
+            color: #c33;
+        }
+
+        .priority-high {
+            background: #ffe;
+            color: #c93;
+        }
+
+        .priority-medium {
+            background: #eef;
+            color: #369;
+        }
+
+        .priority-low {
+            background: #efe;
+            color: #393;
+        }
+
+        .follow-up-meta {
+            font-size: 0.875rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+
+        .draft-item {
+            padding: 1rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .draft-item:last-child {
+            border-bottom: none;
+        }
+
+        .draft-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+        }
+
+        .draft-text {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 0.75rem 0;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .draft-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #999;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            width: 90%;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h2 {
+            font-size: 1.5rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .conversation-history {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 6px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .conversation-item {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-left: 3px solid #667eea;
+            background: white;
+        }
+
+        .conversation-direction {
+            font-size: 0.75rem;
+            color: #666;
+            margin-bottom: 0.25rem;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 1rem;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Business Manager</h1>
+        <p>Daily Follow-ups & AI Response Assistant</p>
+    </div>
+
+    <div class="container">
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <h3>Total Follow-ups</h3>
+                <div class="value" id="totalFollowUps">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Urgent</h3>
+                <div class="value" id="urgentFollowUps">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Drafts Ready</h3>
+                <div class="value" id="draftsReady">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Conversations Today</h3>
+                <div class="value" id="conversationsToday">-</div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-primary" onclick="runDailyReview()">Run Daily Review</button>
+            <button class="btn btn-secondary" onclick="loadDashboard()">Refresh</button>
+            <button class="btn btn-secondary" onclick="checkLinkedInStatus()">Check LinkedIn</button>
+        </div>
+
+        <div class="section" id="linkedinStatus" style="margin-bottom: 2rem; display: none;">
+            <div class="section-header">
+                <h2>LinkedIn Connection Status</h2>
+            </div>
+            <div class="section-content" id="linkedinStatusContent">
+                <div class="loading">Checking...</div>
+            </div>
+        </div>
+
+        <div class="content-grid">
+            <div class="section">
+                <div class="section-header">
+                    <h2>Follow-ups Needed</h2>
+                </div>
+                <div class="section-content" id="followUpsList">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <h2>Draft Responses</h2>
+                </div>
+                <div class="section-content" id="draftsList">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Draft Modal -->
+    <div class="modal" id="draftModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Draft Response</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modalBody">
+                <!-- Content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/dashboard';
+
+        async function loadDashboard() {
+            try {
+                const response = await fetch(`${API_BASE}/summary`);
+                const data = await response.json();
+
+                // Update stats
+                document.getElementById('totalFollowUps').textContent = data.stats.totalFollowUps;
+                document.getElementById('urgentFollowUps').textContent = data.stats.urgentFollowUps;
+                document.getElementById('draftsReady').textContent = data.stats.draftsPending;
+                document.getElementById('conversationsToday').textContent = data.stats.conversationsToday;
+
+                // Render follow-ups
+                renderFollowUps(data.followUps);
+                
+                // Render drafts
+                renderDrafts(data.drafts);
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                document.getElementById('followUpsList').innerHTML = '<div class="empty-state">Error loading data</div>';
+                document.getElementById('draftsList').innerHTML = '<div class="empty-state">Error loading data</div>';
+            }
+        }
+
+        function renderFollowUps(followUps) {
+            const container = document.getElementById('followUpsList');
+            
+            if (!followUps || followUps.length === 0) {
+                container.innerHTML = '<div class="empty-state">No follow-ups needed</div>';
+                return;
+            }
+
+            container.innerHTML = followUps.map(followUp => `
+                <div class="follow-up-item" onclick="viewFollowUp('${followUp._id}')">
+                    <div class="follow-up-header">
+                        <div>
+                            <div class="contact-name">${followUp.firstName || ''} ${followUp.lastName || ''}</div>
+                            <div style="font-size: 0.875rem; color: #666; margin-top: 0.25rem;">
+                                ${followUp.email || ''} ${followUp.company ? `• ${followUp.company}` : ''}
+                            </div>
+                        </div>
+                        <span class="priority-badge priority-${followUp.priority || 'medium'}">
+                            ${followUp.priority || 'medium'}
+                        </span>
+                    </div>
+                    <div class="follow-up-meta">
+                        ${followUp.followUpReason || 'Follow-up needed'}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderDrafts(drafts) {
+            const container = document.getElementById('draftsList');
+            
+            if (!drafts || drafts.length === 0) {
+                container.innerHTML = '<div class="empty-state">No draft responses yet</div>';
+                return;
+            }
+
+            container.innerHTML = drafts.map(draft => {
+                const contact = draft.contactId || {};
+                return `
+                    <div class="draft-item">
+                        <div class="draft-header">
+                            <div>
+                                <strong>${contact.firstName || ''} ${contact.lastName || ''}</strong>
+                                <div style="font-size: 0.875rem; color: #666; margin-top: 0.25rem;">
+                                    ${draft.platform} • ${new Date(draft.createdAt).toLocaleDateString()}
+                                </div>
+                            </div>
+                            <span class="priority-badge priority-${draft.status || 'draft'}">
+                                ${draft.status}
+                            </span>
+                        </div>
+                        <div class="draft-text">${draft.draftText.substring(0, 200)}${draft.draftText.length > 200 ? '...' : ''}</div>
+                        <div class="draft-actions">
+                            <button class="btn btn-primary btn-small" onclick="viewDraft('${draft._id}')">View & Edit</button>
+                            <button class="btn btn-success btn-small" onclick="sendDraft('${draft._id}')">Send</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function viewDraft(draftId) {
+            try {
+                const response = await fetch(`${API_BASE}/draft/${draftId}`);
+                const draft = await response.json();
+
+                const contact = draft.contactId || {};
+                const conversation = draft.conversationId || {};
+
+                document.getElementById('modalTitle').textContent = `Draft Response - ${contact.firstName || ''} ${contact.lastName || ''}`;
+                
+                document.getElementById('modalBody').innerHTML = `
+                    <div>
+                        <p><strong>Platform:</strong> ${draft.platform}</p>
+                        <p><strong>Date:</strong> ${new Date(draft.createdAt).toLocaleString()}</p>
+                    </div>
+                    
+                    <div style="margin: 1.5rem 0;">
+                        <h3 style="margin-bottom: 0.5rem;">Original Message:</h3>
+                        <div class="conversation-item">
+                            <div class="conversation-direction">${conversation.direction || 'inbound'}</div>
+                            <div>${conversation.body || 'No message content'}</div>
+                        </div>
+                    </div>
+
+                    <div style="margin: 1.5rem 0;">
+                        <h3 style="margin-bottom: 0.5rem;">Draft Response:</h3>
+                        <textarea id="draftText">${draft.draftText}</textarea>
+                    </div>
+
+                    <div class="draft-actions">
+                        <button class="btn btn-primary" onclick="saveDraft('${draftId}')">Save Changes</button>
+                        <button class="btn btn-secondary" onclick="regenerateDraft('${draftId}')">Regenerate</button>
+                        <button class="btn btn-success" onclick="sendDraft('${draftId}')">Send Response</button>
+                    </div>
+                `;
+
+                document.getElementById('draftModal').classList.add('active');
+            } catch (error) {
+                console.error('Error loading draft:', error);
+                alert('Error loading draft');
+            }
+        }
+
+        async function saveDraft(draftId) {
+            const draftText = document.getElementById('draftText').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/draft/${draftId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ draftText, status: 'reviewed' })
+                });
+
+                if (response.ok) {
+                    alert('Draft saved!');
+                    loadDashboard();
+                } else {
+                    throw new Error('Failed to save');
+                }
+            } catch (error) {
+                console.error('Error saving draft:', error);
+                alert('Error saving draft');
+            }
+        }
+
+        async function regenerateDraft(draftId) {
+            if (!confirm('Regenerate this draft? This will replace the current draft.')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/draft/${draftId}/generate`, {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    const newDraft = await response.json();
+                    document.getElementById('draftText').value = newDraft.draftText;
+                    alert('Draft regenerated!');
+                } else {
+                    throw new Error('Failed to regenerate');
+                }
+            } catch (error) {
+                console.error('Error regenerating draft:', error);
+                alert('Error regenerating draft');
+            }
+        }
+
+        async function sendDraft(draftId) {
+            const draftText = document.getElementById('draftText')?.value;
+            const finalResponse = draftText || prompt('Final response text:');
+
+            if (!finalResponse) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/draft/${draftId}/send`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ finalResponse })
+                });
+
+                if (response.ok) {
+                    alert('Response sent!');
+                    closeModal();
+                    loadDashboard();
+                } else {
+                    throw new Error('Failed to send');
+                }
+            } catch (error) {
+                console.error('Error sending draft:', error);
+                alert('Error sending response');
+            }
+        }
+
+        async function viewFollowUp(contactId) {
+            // Load conversations and create draft
+            try {
+                const response = await fetch(`${API_BASE}/contacts/${contactId}/conversations`);
+                const conversations = await response.json();
+                
+                const unresponded = conversations.find(c => c.responseNeeded);
+                if (!unresponded) {
+                    alert('No unresponded conversations found');
+                    return;
+                }
+
+                // Create draft
+                const draftResponse = await fetch(`${API_BASE}/contacts/${contactId}/draft`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        conversationId: unresponded._id,
+                        platform: unresponded.platform
+                    })
+                });
+
+                if (draftResponse.ok) {
+                    const draft = await draftResponse.json();
+                    viewDraft(draft._id);
+                } else {
+                    throw new Error('Failed to create draft');
+                }
+            } catch (error) {
+                console.error('Error creating draft:', error);
+                alert('Error creating draft');
+            }
+        }
+
+        async function runDailyReview() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Running...';
+
+            try {
+                const response = await fetch(`${API_BASE}/run-review`, {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    alert(`Daily review complete!\nFound ${result.followUps.length} follow-ups\nGenerated ${result.drafts.length} drafts`);
+                    loadDashboard();
+                } else {
+                    throw new Error('Review failed');
+                }
+            } catch (error) {
+                console.error('Error running review:', error);
+                alert('Error running daily review');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Run Daily Review';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('draftModal').classList.remove('active');
+        }
+
+        // Close modal on outside click
+        document.getElementById('draftModal').addEventListener('click', (e) => {
+            if (e.target.id === 'draftModal') {
+                closeModal();
+            }
+        });
+
+        async function checkLinkedInStatus() {
+            const statusDiv = document.getElementById('linkedinStatus');
+            const contentDiv = document.getElementById('linkedinStatusContent');
+            statusDiv.style.display = 'block';
+            contentDiv.innerHTML = '<div class="loading">Checking LinkedIn connection...</div>';
+
+            try {
+                const response = await fetch('/api/linkedin/status');
+                const status = await response.json();
+
+                if (status.connected) {
+                    const messagingStatus = status.messagingAvailable 
+                        ? '<span style="color: #28a745;">✓ Available</span>' 
+                        : '<span style="color: #ffc107;">⚠ Requires Approval</span>';
+
+                    contentDiv.innerHTML = `
+                        <div style="padding: 1rem;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                                <div style="font-size: 2rem;">✅</div>
+                                <div>
+                                    <strong style="font-size: 1.2rem;">LinkedIn Connected</strong>
+                                    <div style="color: #666; margin-top: 0.25rem;">
+                                        ${status.profile.firstName} ${status.profile.lastName}
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px;">
+                                <div style="margin-bottom: 0.5rem;"><strong>Messaging API:</strong> ${messagingStatus}</div>
+                                ${status.conversationsCount !== undefined ? 
+                                    `<div><strong>Recent Conversations:</strong> ${status.conversationsCount}</div>` : ''}
+                            </div>
+                            ${!status.messagingAvailable ? `
+                                <div style="background: #fff3cd; padding: 1rem; border-radius: 6px; margin-top: 1rem; border-left: 4px solid #ffc107;">
+                                    <strong>⚠️ Messaging API Approval Required</strong>
+                                    <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">
+                                        To sync LinkedIn messages, you need to request <code>r_messages</code> permission 
+                                        in your LinkedIn app and get it approved. See LINKEDIN-SETUP.md for details.
+                                    </p>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                } else {
+                    const hasOAuth = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                    const authUrl = hasOAuth ? '/api/linkedin/auth' : '#';
+
+                    contentDiv.innerHTML = `
+                        <div style="padding: 1rem;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                                <div style="font-size: 2rem;">❌</div>
+                                <div>
+                                    <strong style="font-size: 1.2rem;">LinkedIn Not Connected</strong>
+                                    <div style="color: #666; margin-top: 0.25rem;">${status.message}</div>
+                                </div>
+                            </div>
+                            <div style="background: #e7f3ff; padding: 1rem; border-radius: 6px; margin-top: 1rem;">
+                                <strong>Setup Instructions:</strong>
+                                <ol style="margin: 0.5rem 0 0 1.5rem; padding-left: 0.5rem;">
+                                    <li>Create a LinkedIn app at <a href="https://www.linkedin.com/developers/apps" target="_blank">linkedin.com/developers/apps</a></li>
+                                    <li>Add redirect URI: <code>http://localhost:3002/api/linkedin/callback</code></li>
+                                    <li>Request permissions: <code>r_liteprofile</code>, <code>r_emailaddress</code>, <code>r_messages</code></li>
+                                    <li>Add to .env: <code>LINKEDIN_CLIENT_ID</code> and <code>LINKEDIN_CLIENT_SECRET</code></li>
+                                    ${hasOAuth ? `<li><a href="${authUrl}" class="btn btn-primary" style="display: inline-block; margin-top: 0.5rem;">Connect LinkedIn</a></li>` : ''}
+                                </ol>
+                                <p style="margin-top: 1rem; font-size: 0.9rem; color: #666;">
+                                    See LINKEDIN-QUICK-SETUP.md for detailed instructions.
+                                </p>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                contentDiv.innerHTML = `
+                    <div style="padding: 1rem; color: #dc3545;">
+                        Error checking LinkedIn status: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Load dashboard on page load
+        loadDashboard();
+
+        // Check LinkedIn status on page load
+        checkLinkedInStatus();
+
+        // Auto-refresh every 5 minutes
+        setInterval(loadDashboard, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  buckydrop-proxy:
+    build: .
+    container_name: buckydrop-proxy
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - BUCKY_DROP_APPCODE=${BUCKY_DROP_APPCODE}
+      - BUCKY_DROP_APPSECRET=${BUCKY_DROP_APPSECRET}
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017/shopify-image-enricher}
+    env_file:
+      - .env
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  mongo:
+    image: mongo:7
+    container_name: buckydrop-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+    # Only needed if you're using MongoDB for other parts of the app
+
+volumes:
+  mongo_data:
+
+

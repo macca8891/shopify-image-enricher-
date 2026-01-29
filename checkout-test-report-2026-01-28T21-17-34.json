@@ -1,0 +1,1539 @@
+{
+  "timestamp": "2026-01-28T21:17:34.756Z",
+  "totalCountries": 45,
+  "successCount": 45,
+  "noRatesCount": 0,
+  "failureCount": 0,
+  "results": [
+    {
+      "country": "Australia",
+      "code": "AU",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "United States",
+      "code": "US",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "United Kingdom",
+      "code": "GB",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Canada",
+      "code": "CA",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Germany",
+      "code": "DE",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "France",
+      "code": "FR",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Italy",
+      "code": "IT",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Spain",
+      "code": "ES",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Netherlands",
+      "code": "NL",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Belgium",
+      "code": "BE",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Switzerland",
+      "code": "CH",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Austria",
+      "code": "AT",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Sweden",
+      "code": "SE",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Norway",
+      "code": "NO",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Denmark",
+      "code": "DK",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Finland",
+      "code": "FI",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Poland",
+      "code": "PL",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Czech Republic",
+      "code": "CZ",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Ireland",
+      "code": "IE",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Portugal",
+      "code": "PT",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Greece",
+      "code": "GR",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "New Zealand",
+      "code": "NZ",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Japan",
+      "code": "JP",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "South Korea",
+      "code": "KR",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Singapore",
+      "code": "SG",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Malaysia",
+      "code": "MY",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Thailand",
+      "code": "TH",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Philippines",
+      "code": "PH",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Indonesia",
+      "code": "ID",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "India",
+      "code": "IN",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "China",
+      "code": "CN",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Hong Kong",
+      "code": "HK",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Taiwan",
+      "code": "TW",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Mexico",
+      "code": "MX",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Brazil",
+      "code": "BR",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Argentina",
+      "code": "AR",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Chile",
+      "code": "CL",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Colombia",
+      "code": "CO",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "South Africa",
+      "code": "ZA",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "United Arab Emirates",
+      "code": "AE",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Saudi Arabia",
+      "code": "SA",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Israel",
+      "code": "IL",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Turkey",
+      "code": "TR",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Russia",
+      "code": "RU",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    },
+    {
+      "country": "Fiji",
+      "code": "FJ",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "error": null,
+      "rates": [
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_0_4837",
+          "total_price": "4837",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-18",
+          "max_delivery_date": "2026-03-04"
+        },
+        {
+          "service_name": "ePacket",
+          "service_code": "EPACKET_1_5578",
+          "total_price": "5578",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-14",
+          "max_delivery_date": "2026-02-28"
+        },
+        {
+          "service_name": "Small Package",
+          "service_code": "SMALL_PACKAGE_2_6930",
+          "total_price": "6930",
+          "currency": "CNY",
+          "min_delivery_date": "2026-02-03",
+          "max_delivery_date": "2026-02-05"
+        }
+      ]
+    }
+  ]
+}

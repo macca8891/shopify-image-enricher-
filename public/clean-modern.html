@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enrichly - Image Processor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            color: #2d3748;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .sidebar {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            height: fit-content;
+        }
+        
+        .sidebar h3 {
+            color: #4a5568;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            font-size: 1rem;
+            width: 100%;
+            margin-bottom: 0.75rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(72, 187, 120, 0.4);
+        }
+        
+        .btn:disabled {
+            background: #e2e8f0;
+            color: #a0aec0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .products-area {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        
+        .products-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .products-header h2 {
+            color: #2d3748;
+            font-size: 1.5rem;
+        }
+        
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .product-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1rem;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+        
+        .product-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.1);
+        }
+        
+        .product-card.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+        }
+        
+        .product-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #2d3748;
+            font-size: 1.1rem;
+        }
+        
+        .product-info {
+            font-size: 0.9rem;
+            color: #718096;
+            margin-bottom: 1rem;
+        }
+        
+        .product-images {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 0.5rem;
+        }
+        
+        .product-image {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+        
+        .product-image:hover {
+            transform: scale(1.05);
+        }
+        
+        .product-image.selected {
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3);
+        }
+        
+        .selection-info {
+            background: linear-gradient(135deg, #e6fffa 0%, #b2f5ea 100%);
+            border: 1px solid #81e6d9;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .selection-info h4 {
+            color: #234e52;
+            margin-bottom: 0.5rem;
+        }
+        
+        .selection-info p {
+            color: #285e61;
+            font-size: 0.9rem;
+        }
+        
+        .log-area {
+            background: #2d3748;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.85rem;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 1rem;
+        }
+        
+        .log-entry {
+            margin-bottom: 0.25rem;
+            padding: 0.25rem 0;
+        }
+        
+        .log-success { color: #48bb78; }
+        .log-error { color: #f56565; }
+        .log-warning { color: #ed8936; }
+        .log-info { color: #4299e1; }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 2% auto;
+            border-radius: 16px;
+            width: 95%;
+            max-width: 1400px;
+            height: 90%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 4px;
+            transition: background 0.2s ease;
+        }
+        
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .modal-body {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        .settings-panel {
+            width: 400px;
+            background: #f7fafc;
+            border-right: 1px solid #e2e8f0;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+        
+        .preview-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #ffffff;
+        }
+        
+        .preview-header {
+            background: #f7fafc;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .preview-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background: #f9f9f9;
+            position: relative;
+        }
+        
+        .preview-image {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 3px solid #e2e8f0;
+        }
+        
+        .preview-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
+        
+        .modal-footer {
+            background: #f7fafc;
+            padding: 1.5rem 2rem;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .setting-group {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .setting-group h3 {
+            color: #2d3748;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #4a5568;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.2s ease;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .form-group input[type="range"] {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            border: none;
+        }
+        
+        .form-group input[type="color"] {
+            height: 50px;
+            padding: 0.25rem;
+            cursor: pointer;
+        }
+        
+        .form-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 0.5rem;
+            transform: scale(1.2);
+        }
+        
+        .range-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        .range-value {
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .watermark-controls {
+            margin-top: 1rem;
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .status-ready {
+            background: #e6fffa;
+            color: #234e52;
+        }
+        
+        .status-processing {
+            background: #fef5e7;
+            color: #744210;
+        }
+        
+        .hidden { display: none; }
+        
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e2e8f0;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>🎨 Enrichly</h1>
+            <p>AI-Powered Product Image Enhancement</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="main-content">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <h3>🚀 Quick Actions</h3>
+                
+                <div class="selection-info" id="selectionInfo" style="display: none;">
+                    <h4>Selection Ready</h4>
+                    <p id="selectionText">Select images to process</p>
+                </div>
+                
+                <button class="btn btn-primary" id="configureBtn" disabled>
+                    🎨 Configure & Process Images
+                </button>
+                
+                <button class="btn btn-primary" onclick="loadProducts()">
+                    🔄 Refresh Products
+                </button>
+                
+                <div style="margin-top: 2rem;">
+                    <h3>📊 Processing Log</h3>
+                    <div class="log-area" id="logArea">
+                        <div class="log-entry log-info">System ready - Select products to begin</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="products-area">
+                <div class="products-header">
+                    <h2>📦 Products</h2>
+                    <div class="status-indicator status-ready" id="statusIndicator">
+                        <span>●</span>
+                        <span>Ready</span>
+                    </div>
+                </div>
+                
+                <div class="products-grid" id="productsGrid">
+                    <div style="text-align: center; padding: 3rem; color: #718096;">
+                        <div class="spinner" style="margin: 0 auto 1rem;"></div>
+                        <p>Loading products...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration Modal -->
+    <div id="configModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🎨 Image Processing Configuration</h2>
+                <button class="modal-close" onclick="closeConfigModal()">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <!-- Settings Panel -->
+                <div class="settings-panel">
+                    <!-- Background Settings -->
+                    <div class="setting-group">
+                        <h3>🎨 Background</h3>
+                        
+                        <div class="form-group">
+                            <label>Background Color</label>
+                            <input type="color" id="backgroundColor" value="#ffffff" onchange="updatePreview()">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="removeBackground" checked onchange="updatePreview()">
+                                Remove Background (AI)
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="autoCenter" checked onchange="updatePreview()">
+                                Auto-Center Product
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Image Settings -->
+                    <div class="setting-group">
+                        <h3>📐 Image Settings</h3>
+                        
+                        <div class="range-group">
+                            <div class="form-group">
+                                <label>Width</label>
+                                <input type="number" id="imageWidth" value="2000" min="500" max="4000" onchange="updatePreview()">
+                            </div>
+                            <div class="form-group">
+                                <label>Height</label>
+                                <input type="number" id="imageHeight" value="2000" min="500" max="4000" onchange="updatePreview()">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="maintainAspectRatio" checked onchange="updatePreview()">
+                                Maintain Aspect Ratio
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="aiUpscaling" onchange="updatePreview()">
+                                AI Upscaling (for small images)
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Margins -->
+                    <div class="setting-group">
+                        <h3>📏 Margins</h3>
+                        
+                        <div class="range-group">
+                            <div class="form-group">
+                                <label>Top: <span id="marginTopValue" class="range-value">200px</span></label>
+                                <input type="range" id="marginTop" min="0" max="400" value="200" oninput="updateMarginDisplays(); updatePreview();">
+                            </div>
+                            <div class="form-group">
+                                <label>Bottom: <span id="marginBottomValue" class="range-value">200px</span></label>
+                                <input type="range" id="marginBottom" min="0" max="400" value="200" oninput="updateMarginDisplays(); updatePreview();">
+                            </div>
+                        </div>
+                        
+                        <div class="range-group">
+                            <div class="form-group">
+                                <label>Left: <span id="marginLeftValue" class="range-value">200px</span></label>
+                                <input type="range" id="marginLeft" min="0" max="400" value="200" oninput="updateMarginDisplays(); updatePreview();">
+                            </div>
+                            <div class="form-group">
+                                <label>Right: <span id="marginRightValue" class="range-value">200px</span></label>
+                                <input type="range" id="marginRight" min="0" max="400" value="200" oninput="updateMarginDisplays(); updatePreview();">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Watermarks -->
+                    <div class="setting-group">
+                        <h3>✨ Watermarks</h3>
+                        
+                        <div class="form-group">
+                            <label>Watermark Type</label>
+                            <select id="watermarkType" onchange="showWatermarkControls()">
+                                <option value="none">None</option>
+                                <option value="logo">Logo</option>
+                                <option value="text">Text</option>
+                            </select>
+                        </div>
+                        
+                        <div id="watermarkControls" class="watermark-controls">
+                            <!-- Dynamic watermark controls will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview Panel -->
+                <div class="preview-panel">
+                    <div class="preview-header">
+                        <h3>🖼️ Live Preview</h3>
+                        <div class="status-indicator status-ready">
+                            <span>●</span>
+                            <span id="previewStatus">Ready</span>
+                        </div>
+                    </div>
+                    
+                    <div class="preview-area">
+                        <img id="previewImage" class="preview-image" src="https://via.placeholder.com/400x400/f0f0f0/666?text=Select+Image">
+                        <div id="previewOverlay" class="preview-overlay"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <div>
+                    <p style="color: #718096; font-size: 0.9rem;">💡 Configure settings and see changes instantly in the preview</p>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn" onclick="resetSettings()" style="background: #e2e8f0; color: #4a5568;">
+                        🔄 Reset
+                    </button>
+                    <button class="btn btn-success" onclick="processImages()" id="processBtn">
+                        🚀 Process Images
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let selectedProducts = new Set();
+        let selectedImages = new Map(); // productId -> imageUrl
+        let currentLogoData = null;
+        let isProcessing = false;
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 Enrichly loaded successfully!', 'success');
+            loadProducts();
+            
+            // Configure button handler
+            document.getElementById('configureBtn').addEventListener('click', openConfigModal);
+        });
+
+        // Product loading
+        async function loadProducts() {
+            log('📦 Loading products...', 'info');
+            
+            try {
+                const response = await fetch('/api/products?limit=50');
+                const data = await response.json();
+                
+                if (data.products && data.products.length > 0) {
+                    displayProducts(data.products);
+                    log(`✅ Loaded ${data.products.length} products`, 'success');
+                } else {
+                    log('⚠️ No products found', 'warning');
+                }
+            } catch (error) {
+                log(`❌ Error loading products: ${error.message}`, 'error');
+            }
+        }
+
+        function displayProducts(products) {
+            const grid = document.getElementById('productsGrid');
+            grid.innerHTML = '';
+
+            products.forEach(product => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                card.dataset.productId = product.id;
+                
+                const images = product.images || [];
+                const imageGridHtml = images.length > 0 
+                    ? images.map(img => `
+                        <img src="${img.src}" 
+                             alt="Product image" 
+                             class="product-image" 
+                             data-product-id="${product.id}"
+                             data-image-url="${img.src}"
+                             onclick="selectImage(this)">
+                    `).join('')
+                    : '<div style="grid-column: 1/-1; text-align: center; color: #a0aec0; padding: 1rem;">No images</div>';
+                
+                card.innerHTML = `
+                    <div class="product-title">${product.title}</div>
+                    <div class="product-info">
+                        ID: ${product.id} | Status: ${product.status}
+                    </div>
+                    <div class="product-images">
+                        ${imageGridHtml}
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+        }
+
+        function selectImage(img) {
+            const productId = img.dataset.productId;
+            const imageUrl = img.dataset.imageUrl;
+            
+            // Clear previous selections
+            document.querySelectorAll('.product-image.selected').forEach(el => {
+                el.classList.remove('selected');
+            });
+            document.querySelectorAll('.product-card.selected').forEach(el => {
+                el.classList.remove('selected');
+            });
+            
+            // Select new image
+            img.classList.add('selected');
+            img.closest('.product-card').classList.add('selected');
+            
+            // Update state
+            selectedProducts.clear();
+            selectedImages.clear();
+            selectedProducts.add(productId);
+            selectedImages.set(productId, imageUrl);
+            
+            // Update UI
+            updateSelectionInfo();
+            
+            log(`📸 Selected image for product ${productId}`, 'info');
+        }
+
+        function updateSelectionInfo() {
+            const info = document.getElementById('selectionInfo');
+            const text = document.getElementById('selectionText');
+            const configBtn = document.getElementById('configureBtn');
+            
+            if (selectedImages.size > 0) {
+                info.style.display = 'block';
+                text.textContent = `${selectedImages.size} image(s) selected for processing`;
+                configBtn.disabled = false;
+            } else {
+                info.style.display = 'none';
+                configBtn.disabled = true;
+            }
+        }
+
+        // Modal functions
+        function openConfigModal() {
+            if (selectedImages.size === 0) {
+                log('⚠️ Please select images first', 'warning');
+                return;
+            }
+            
+            // Load first selected image into preview
+            const firstImageUrl = Array.from(selectedImages.values())[0];
+            document.getElementById('previewImage').src = firstImageUrl;
+            
+            // Show modal
+            document.getElementById('configModal').style.display = 'block';
+            
+            // Update preview
+            setTimeout(() => {
+                updatePreview();
+                showWatermarkControls();
+            }, 100);
+            
+            log('🎨 Configuration modal opened', 'info');
+        }
+
+        function closeConfigModal() {
+            document.getElementById('configModal').style.display = 'none';
+            log('✖️ Configuration modal closed', 'info');
+        }
+
+        // Settings functions
+        function updateMarginDisplays() {
+            document.getElementById('marginTopValue').textContent = document.getElementById('marginTop').value + 'px';
+            document.getElementById('marginBottomValue').textContent = document.getElementById('marginBottom').value + 'px';
+            document.getElementById('marginLeftValue').textContent = document.getElementById('marginLeft').value + 'px';
+            document.getElementById('marginRightValue').textContent = document.getElementById('marginRight').value + 'px';
+        }
+
+        function showWatermarkControls() {
+            const type = document.getElementById('watermarkType').value;
+            const container = document.getElementById('watermarkControls');
+            
+            if (type === 'none') {
+                container.innerHTML = '<p style="color: #a0aec0; font-style: italic;">No watermark selected</p>';
+                return;
+            }
+            
+            if (type === 'logo') {
+                container.innerHTML = `
+                    <div class="form-group">
+                        <label>Upload Logo</label>
+                        <input type="file" accept="image/*" onchange="handleLogoUpload(this)">
+                        <div id="logoPreview" style="margin-top: 0.5rem;"></div>
+                    </div>
+                    
+                    <div class="range-group">
+                        <div class="form-group">
+                            <label>Size: <span id="logoSizeValue" class="range-value">50%</span></label>
+                            <input type="range" id="logoSize" min="10" max="100" value="50" oninput="updateLogoDisplays(); updatePreview();">
+                        </div>
+                        <div class="form-group">
+                            <label>Transparency: <span id="logoTransparencyValue" class="range-value">20%</span></label>
+                            <input type="range" id="logoTransparency" min="0" max="90" value="20" oninput="updateLogoDisplays(); updatePreview();">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Position</label>
+                        <select id="logoPosition" onchange="updatePreview()">
+                            <option value="center">Center</option>
+                            <option value="top-left">Top Left</option>
+                            <option value="top-right">Top Right</option>
+                            <option value="bottom-left">Bottom Left</option>
+                            <option value="bottom-right" selected>Bottom Right</option>
+                        </select>
+                    </div>
+                `;
+                updateLogoDisplays();
+            } else if (type === 'text') {
+                container.innerHTML = `
+                    <div class="form-group">
+                        <label>Text Content</label>
+                        <input type="text" id="textContent" value="SPM" placeholder="Enter text..." oninput="updatePreview()">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Text Color</label>
+                        <input type="color" id="textColor" value="#ffffff" onchange="updatePreview()">
+                    </div>
+                    
+                    <div class="range-group">
+                        <div class="form-group">
+                            <label>Size: <span id="textSizeValue" class="range-value">48px</span></label>
+                            <input type="range" id="textSize" min="20" max="100" value="48" oninput="updateTextDisplays(); updatePreview();">
+                        </div>
+                        <div class="form-group">
+                            <label>Position</label>
+                            <select id="textPosition" onchange="updatePreview()">
+                                <option value="center">Center</option>
+                                <option value="top-left">Top Left</option>
+                                <option value="top-right">Top Right</option>
+                                <option value="bottom-left">Bottom Left</option>
+                                <option value="bottom-right" selected>Bottom Right</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+                updateTextDisplays();
+            }
+            
+            updatePreview();
+        }
+
+        function updateLogoDisplays() {
+            const sizeEl = document.getElementById('logoSizeValue');
+            const transEl = document.getElementById('logoTransparencyValue');
+            
+            if (sizeEl) sizeEl.textContent = document.getElementById('logoSize').value + '%';
+            if (transEl) transEl.textContent = document.getElementById('logoTransparency').value + '%';
+        }
+
+        function updateTextDisplays() {
+            const sizeEl = document.getElementById('textSizeValue');
+            if (sizeEl) sizeEl.textContent = document.getElementById('textSize').value + 'px';
+        }
+
+        function handleLogoUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentLogoData = e.target.result;
+                
+                // Show preview
+                const preview = document.getElementById('logoPreview');
+                preview.innerHTML = `<img src="${currentLogoData}" style="max-width: 100px; max-height: 50px; border-radius: 4px; border: 1px solid #e2e8f0;">`;
+                
+                updatePreview();
+                log('📷 Logo uploaded successfully', 'success');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function updatePreview() {
+            const overlay = document.getElementById('previewOverlay');
+            const container = document.querySelector('.preview-area');
+            const previewImage = document.getElementById('previewImage');
+            
+            // Clear previous overlays
+            overlay.innerHTML = '';
+            
+            // Apply background color if not removing background
+            if (!document.getElementById('removeBackground').checked) {
+                container.style.backgroundColor = document.getElementById('backgroundColor').value;
+            } else {
+                container.style.backgroundColor = '#f9f9f9';
+            }
+            
+            // Add watermark overlay
+            const watermarkType = document.getElementById('watermarkType').value;
+            
+            if (watermarkType === 'logo' && currentLogoData) {
+                addLogoToPreview();
+            } else if (watermarkType === 'text') {
+                addTextToPreview();
+            }
+        }
+
+        function addLogoToPreview() {
+            const overlay = document.getElementById('previewOverlay');
+            const logoDiv = document.createElement('div');
+            logoDiv.style.position = 'absolute';
+            logoDiv.style.pointerEvents = 'none';
+            
+            const logoSize = document.getElementById('logoSize') ? document.getElementById('logoSize').value : 50;
+            const logoTransparency = document.getElementById('logoTransparency') ? document.getElementById('logoTransparency').value : 20;
+            const logoPosition = document.getElementById('logoPosition') ? document.getElementById('logoPosition').value : 'bottom-right';
+            
+            const containerRect = overlay.getBoundingClientRect();
+            const maxLogoSize = Math.min(containerRect.width, containerRect.height) * 0.15;
+            const actualLogoSize = Math.min(maxLogoSize, (logoSize / 100) * 100);
+            
+            const logoImg = document.createElement('img');
+            logoImg.src = currentLogoData;
+            logoImg.style.width = actualLogoSize + 'px';
+            logoImg.style.height = 'auto';
+            logoImg.style.opacity = (100 - logoTransparency) / 100;
+            logoImg.style.borderRadius = '4px';
+            
+            // Position logo
+            switch(logoPosition) {
+                case 'center':
+                    logoDiv.style.left = '50%';
+                    logoDiv.style.top = '50%';
+                    logoDiv.style.transform = 'translate(-50%, -50%)';
+                    break;
+                case 'top-left':
+                    logoDiv.style.left = '20px';
+                    logoDiv.style.top = '20px';
+                    break;
+                case 'top-right':
+                    logoDiv.style.right = '20px';
+                    logoDiv.style.top = '20px';
+                    break;
+                case 'bottom-left':
+                    logoDiv.style.left = '20px';
+                    logoDiv.style.bottom = '20px';
+                    break;
+                case 'bottom-right':
+                    logoDiv.style.right = '20px';
+                    logoDiv.style.bottom = '20px';
+                    break;
+            }
+            
+            logoDiv.appendChild(logoImg);
+            overlay.appendChild(logoDiv);
+        }
+
+        function addTextToPreview() {
+            const overlay = document.getElementById('previewOverlay');
+            const textDiv = document.createElement('div');
+            textDiv.style.position = 'absolute';
+            textDiv.style.pointerEvents = 'none';
+            textDiv.style.fontFamily = 'Arial, sans-serif';
+            textDiv.style.fontWeight = 'bold';
+            
+            const textContent = document.getElementById('textContent') ? document.getElementById('textContent').value : 'SPM';
+            const textColor = document.getElementById('textColor') ? document.getElementById('textColor').value : '#ffffff';
+            const textSize = document.getElementById('textSize') ? document.getElementById('textSize').value : 48;
+            const textPosition = document.getElementById('textPosition') ? document.getElementById('textPosition').value : 'bottom-right';
+            
+            textDiv.style.fontSize = textSize + 'px';
+            textDiv.style.color = textColor;
+            textDiv.style.textShadow = '2px 2px 4px rgba(0,0,0,0.5)';
+            textDiv.textContent = textContent;
+            
+            // Position text
+            switch(textPosition) {
+                case 'center':
+                    textDiv.style.left = '50%';
+                    textDiv.style.top = '50%';
+                    textDiv.style.transform = 'translate(-50%, -50%)';
+                    break;
+                case 'top-left':
+                    textDiv.style.left = '20px';
+                    textDiv.style.top = '20px';
+                    break;
+                case 'top-right':
+                    textDiv.style.right = '20px';
+                    textDiv.style.top = '20px';
+                    break;
+                case 'bottom-left':
+                    textDiv.style.left = '20px';
+                    textDiv.style.bottom = '20px';
+                    break;
+                case 'bottom-right':
+                    textDiv.style.right = '20px';
+                    textDiv.style.bottom = '20px';
+                    break;
+            }
+            
+            overlay.appendChild(textDiv);
+        }
+
+        function resetSettings() {
+            // Reset all form values to defaults
+            document.getElementById('backgroundColor').value = '#ffffff';
+            document.getElementById('removeBackground').checked = true;
+            document.getElementById('autoCenter').checked = true;
+            document.getElementById('imageWidth').value = '2000';
+            document.getElementById('imageHeight').value = '2000';
+            document.getElementById('maintainAspectRatio').checked = true;
+            document.getElementById('aiUpscaling').checked = false;
+            
+            document.getElementById('marginTop').value = '200';
+            document.getElementById('marginBottom').value = '200';
+            document.getElementById('marginLeft').value = '200';
+            document.getElementById('marginRight').value = '200';
+            
+            document.getElementById('watermarkType').value = 'none';
+            
+            currentLogoData = null;
+            
+            updateMarginDisplays();
+            showWatermarkControls();
+            updatePreview();
+            
+            log('🔄 Settings reset to defaults', 'info');
+        }
+
+        // Process images
+        async function processImages() {
+            if (isProcessing) return;
+            if (selectedImages.size === 0) {
+                log('⚠️ No images selected', 'warning');
+                return;
+            }
+            
+            isProcessing = true;
+            const processBtn = document.getElementById('processBtn');
+            const originalText = processBtn.innerHTML;
+            processBtn.innerHTML = '<div class="spinner"></div> Processing...';
+            processBtn.disabled = true;
+            
+            log(`🚀 Starting processing of ${selectedImages.size} image(s)`, 'info');
+            
+            try {
+                // Gather all settings
+                const settings = getSettings();
+                
+                // Process each selected image
+                for (const [productId, imageUrl] of selectedImages) {
+                    log(`📸 Processing image for product ${productId}`, 'info');
+                    
+                    const response = await fetch('/api/process-image', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            productId,
+                            imageUrl,
+                            settings
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        log(`✅ Successfully processed image: ${result.filename}`, 'success');
+                        log(`🔗 View result: ${result.url}`, 'info');
+                    } else {
+                        log(`❌ Processing failed: ${result.error}`, 'error');
+                    }
+                }
+                
+                log('🎉 All images processed successfully!', 'success');
+                
+            } catch (error) {
+                log(`❌ Processing error: ${error.message}`, 'error');
+            } finally {
+                isProcessing = false;
+                processBtn.innerHTML = originalText;
+                processBtn.disabled = false;
+            }
+        }
+
+        function getSettings() {
+            const watermarkType = document.getElementById('watermarkType').value;
+            
+            const settings = {
+                removeBackground: document.getElementById('removeBackground').checked,
+                backgroundColor: document.getElementById('backgroundColor').value,
+                imageWidth: parseInt(document.getElementById('imageWidth').value),
+                imageHeight: parseInt(document.getElementById('imageHeight').value),
+                maintainAspectRatio: document.getElementById('maintainAspectRatio').checked,
+                resizeMode: 'contain',
+                imageQuality: 90,
+                imageFormat: 'png',
+                autoCenter: document.getElementById('autoCenter').checked,
+                aiUpscaling: document.getElementById('aiUpscaling').checked,
+                marginTop: parseInt(document.getElementById('marginTop').value),
+                marginBottom: parseInt(document.getElementById('marginBottom').value),
+                marginLeft: parseInt(document.getElementById('marginLeft').value),
+                marginRight: parseInt(document.getElementById('marginRight').value)
+            };
+            
+            if (watermarkType === 'logo' && currentLogoData) {
+                settings.watermarkType = 'logo';
+                settings.logoData = currentLogoData;
+                settings.logoSize = parseInt(document.getElementById('logoSize').value);
+                settings.logoTransparency = parseInt(document.getElementById('logoTransparency').value);
+                settings.logoPosition = document.getElementById('logoPosition').value;
+            } else if (watermarkType === 'text') {
+                settings.watermarkType = 'text';
+                settings.watermarkText = document.getElementById('textContent').value;
+                settings.watermarkColor = document.getElementById('textColor').value;
+                settings.watermarkSize = parseInt(document.getElementById('textSize').value);
+                settings.watermarkPosition = document.getElementById('textPosition').value;
+            } else {
+                settings.watermarkType = 'none';
+            }
+            
+            return settings;
+        }
+
+        // Logging function
+        function log(message, type = 'info') {
+            const logArea = document.getElementById('logArea');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            entry.innerHTML = `[${timestamp}] ${message}`;
+            
+            logArea.appendChild(entry);
+            logArea.scrollTop = logArea.scrollHeight;
+            
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        // Initialize margin displays
+        document.addEventListener('DOMContentLoaded', function() {
+            updateMarginDisplays();
+        });
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('configModal');
+            if (event.target === modal) {
+                closeConfigModal();
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+

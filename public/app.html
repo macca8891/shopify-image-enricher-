@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuckyDrop Shipping - Carrier Service Setup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f6f6f7;
+            color: #202223;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        .header {
+            background: white;
+            border-bottom: 1px solid #e1e3e5;
+            padding: 20px 24px;
+            margin-bottom: 24px;
+        }
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #202223;
+        }
+        .header p {
+            color: #6d7175;
+            margin-top: 4px;
+        }
+        .card {
+            background: white;
+            border: 1px solid #e1e3e5;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .card h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #202223;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 16px;
+        }
+        .status.active {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #008060;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+        .button:hover {
+            background: #006e52;
+        }
+        .button.secondary {
+            background: #6d7175;
+        }
+        .button.secondary:hover {
+            background: #5c5f62;
+        }
+        .button:disabled {
+            background: #e1e3e5;
+            color: #8c9196;
+            cursor: not-allowed;
+        }
+        .info-box {
+            background: #f6f6f7;
+            border-left: 4px solid #008060;
+            padding: 16px;
+            margin-top: 16px;
+            border-radius: 4px;
+        }
+        .info-box p {
+            margin-bottom: 8px;
+            color: #202223;
+        }
+        .info-box code {
+            background: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .log {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 16px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 16px;
+        }
+        .log-entry {
+            margin-bottom: 4px;
+        }
+        .log-entry.success {
+            color: #4ec9b0;
+        }
+        .log-entry.error {
+            color: #f48771;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚚 BuckyDrop Shipping</h1>
+        <p>Carrier Calculated Shipping Service</p>
+    </div>
+
+    <div class="container">
+        <!-- Carrier Service Status -->
+        <div class="card">
+            <h2>Carrier Service Status</h2>
+            <div id="statusContainer">
+                <span class="status inactive" id="statusBadge">Checking...</span>
+                <p id="statusMessage" class="status-message">Loading carrier service status...</p>
+            </div>
+            <div style="margin-top: 16px;">
+                <button class="button" id="enableBtn" onclick="enableCarrierService()">Enable Carrier Service</button>
+                <button class="button secondary" id="disableBtn" onclick="disableCarrierService()" style="display: none;">Disable Carrier Service</button>
+                <button class="button" id="reauthBtn" onclick="window.location.href='/api/auth/shopify?shop=' + encodeURIComponent(shopDomain)" style="display: none; background: #ff6b35;">Re-authenticate to Approve Scopes</button>
+                <button class="button secondary" onclick="checkStatus()">Refresh Status</button>
+            </div>
+            <div class="info-box" id="infoBox" style="display: none;">
+                <p><strong>✅ Carrier service is active!</strong></p>
+                <p>To use BuckyDrop rates at checkout:</p>
+                <ol style="margin-left: 20px; margin-top: 8px;">
+                    <li>Go to <strong>Settings → Shipping & delivery</strong></li>
+                    <li>Click <strong>"Manage rates"</strong> for your shipping zone</li>
+                    <li>Click <strong>"Add rate"</strong></li>
+                    <li>Select <strong>"Use carrier or app to calculate rates"</strong></li>
+                    <li>Choose <strong>"BuckyDrop Shipping"</strong> from the dropdown</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- How It Works -->
+        <div class="card">
+            <h2>How It Works</h2>
+            <p>BuckyDrop Shipping integrates with Shopify's Carrier Calculated Shipping (CCS) to show real-time shipping rates at checkout.</p>
+            <ul style="margin-left: 20px; margin-top: 12px;">
+                <li>Reads product dimensions and weight from metafields</li>
+                <li>Calls BuckyDrop API to calculate shipping rates</li>
+                <li>Shows <strong>BuckyDrop Standard</strong> and <strong>BuckyDrop Express</strong> rates at checkout</li>
+                <li>Rates are calculated in real-time based on cart contents and destination</li>
+            </ul>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="card">
+            <h2>Activity Log</h2>
+            <div class="log" id="logContainer">
+                <div class="log-entry">Ready. Click "Enable Carrier Service" to begin.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get shop domain from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const shopDomain = urlParams.get('shop') || '';
+
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        async function checkStatus() {
+            if (!shopDomain) {
+                log('Error: No shop parameter in URL', 'error');
+                return;
+            }
+
+            try {
+                log('Checking carrier service status...');
+                const response = await fetch(`/api/shipping/carrier-service-status?shop=${shopDomain}`);
+                const data = await response.json();
+
+                const statusBadge = document.getElementById('statusBadge');
+                const statusMessage = document.getElementById('statusMessage');
+                const enableBtn = document.getElementById('enableBtn');
+                const disableBtn = document.getElementById('disableBtn');
+                const infoBox = document.getElementById('infoBox');
+
+                if (data.registered) {
+                    statusBadge.textContent = 'Active';
+                    statusBadge.className = 'status active';
+                    const formatInfo = data.format ? ` (Format: ${data.format.toUpperCase()})` : '';
+                    statusMessage.textContent = `Carrier service is registered (ID: ${data.carrierServiceId})${formatInfo}`;
+                    enableBtn.style.display = 'none';
+                    disableBtn.style.display = 'inline-block';
+                    infoBox.style.display = 'block';
+                    log(`Carrier service is active${formatInfo}`, 'success');
+                    if (data.format && data.format !== 'json') {
+                        log(`⚠️ WARNING: Format is '${data.format}' but should be 'json'. Please re-register!`, 'error');
+                    }
+                } else {
+                    statusBadge.textContent = 'Inactive';
+                    statusBadge.className = 'status inactive';
+                    
+                    // Check if it's a scope approval issue
+                    if (data.needsReauth || (data.error && data.error.includes('approval'))) {
+                        statusMessage.textContent = 'Shipping scopes need merchant approval. Click the button below to re-authenticate.';
+                        enableBtn.style.display = 'none';
+                        document.getElementById('reauthBtn').style.display = 'inline-block';
+                        log('⚠️ Shipping scopes need merchant approval. Please re-authenticate.', 'error');
+                    } else {
+                        document.getElementById('reauthBtn').style.display = 'none';
+                        statusMessage.textContent = data.message || 'Carrier service is not registered';
+                        enableBtn.style.display = 'inline-block';
+                    }
+                    
+                    disableBtn.style.display = 'none';
+                    infoBox.style.display = 'none';
+                    if (!data.needsReauth) {
+                        log('Carrier service is not registered', 'error');
+                    }
+                }
+            } catch (error) {
+                log(`Error checking status: ${error.message}`, 'error');
+            }
+        }
+
+        async function enableCarrierService() {
+            if (!shopDomain) {
+                log('Error: No shop parameter in URL', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('enableBtn');
+            btn.disabled = true;
+            btn.textContent = 'Enabling...';
+
+            try {
+                log('Registering carrier service with Shopify...');
+                const response = await fetch('/api/shipping/register-carrier-service', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ shop: shopDomain })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    log('✅ Carrier service registered successfully!', 'success');
+                    await checkStatus();
+                } else {
+                    if (data.needsReauth) {
+                        log(`⚠️ ${data.details || data.error}`, 'error');
+                        log('Click the re-authentication link above to approve shipping scopes', 'error');
+                        // Update status message
+                        const statusMessage = document.getElementById('statusMessage');
+                        if (statusMessage) {
+                            statusMessage.innerHTML = data.details + ' <a href="' + data.reauthUrl + '" style="color: #008060; text-decoration: underline;">Re-authenticate now</a>';
+                        }
+                    } else {
+                        throw new Error(data.details || data.error || 'Failed to register carrier service');
+                    }
+                }
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Enable Carrier Service';
+            }
+        }
+
+        function reauthenticate() {
+            if (!shopDomain) {
+                log('Error: No shop parameter in URL', 'error');
+                return;
+            }
+            const reauthUrl = `/api/auth/shopify?shop=${encodeURIComponent(shopDomain)}`;
+            log('Redirecting to OAuth: ' + reauthUrl, 'error');
+            window.location.href = reauthUrl;
+        }
+
+        async function disableCarrierService() {
+            if (!confirm('Unregister the carrier service? BuckyDrop rates will no longer show at checkout.')) {
+                return;
+            }
+
+            const btn = document.getElementById('disableBtn');
+            btn.disabled = true;
+            btn.textContent = 'Disabling...';
+
+            try {
+                log('Unregistering carrier service...');
+                const response = await fetch(`/api/shipping/unregister-carrier-service?shop=${shopDomain}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    log('✅ Carrier service unregistered', 'success');
+                    await checkStatus();
+                } else {
+                    throw new Error(data.error || 'Failed to unregister carrier service');
+                }
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Disable Carrier Service';
+            }
+        }
+
+        // Check authentication status first
+        async function checkAuthentication() {
+            if (!shopDomain) {
+                log('Warning: No shop parameter found. Add ?shop=your-store.myshopify.com to the URL', 'error');
+                return false;
+            }
+
+            try {
+                log('Checking authentication status...');
+                // Encode the shop parameter properly
+                const encodedShop = encodeURIComponent(shopDomain);
+                const response = await fetch(`/api/auth/shop/verify?shop=${encodedShop}`);
+                const data = await response.json();
+
+                if (data.authenticated) {
+                    log('✅ Shop is authenticated', 'success');
+                    return true;
+                } else {
+                    log('⚠️ Shop not authenticated. Redirecting to OAuth...', 'error');
+                    // Redirect to OAuth with properly encoded shop parameter
+                    const oauthUrl = `/api/auth/shopify?shop=${encodedShop}`;
+                    log(`Redirecting to: ${oauthUrl}`, 'error');
+                    window.location.href = oauthUrl;
+                    return false;
+                }
+            } catch (error) {
+                log(`Error checking authentication: ${error.message}`, 'error');
+                // Try OAuth anyway with properly encoded shop parameter
+                const encodedShop = encodeURIComponent(shopDomain);
+                const oauthUrl = `/api/auth/shopify?shop=${encodedShop}`;
+                log(`Redirecting to OAuth: ${oauthUrl}`, 'error');
+                window.location.href = oauthUrl;
+                return false;
+            }
+        }
+
+        // Check authentication, then status
+        if (shopDomain) {
+            checkAuthentication().then(authenticated => {
+                if (authenticated) {
+                    checkStatus();
+                }
+            });
+        } else {
+            log('Warning: No shop parameter found. Add ?shop=your-store.myshopify.com to the URL', 'error');
+        }
+    </script>
+</body>
+</html>
+

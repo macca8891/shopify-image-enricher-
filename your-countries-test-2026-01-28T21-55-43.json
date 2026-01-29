@@ -1,0 +1,2062 @@
+{
+  "timestamp": "2026-01-28T21:55:43.541Z",
+  "totalCountries": 228,
+  "successCount": 228,
+  "noRatesCount": 0,
+  "failureCount": 0,
+  "successRate": "100.0%",
+  "results": [
+    {
+      "country": "Andorra",
+      "code": "AD",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "United Arab Emirates",
+      "code": "AE",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Afghanistan",
+      "code": "AF",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Anguilla",
+      "code": "AI",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Albania",
+      "code": "AL",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Armenia",
+      "code": "AM",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Angola",
+      "code": "AO",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Argentina",
+      "code": "AR",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Austria",
+      "code": "AT",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Australia",
+      "code": "AU",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Aruba",
+      "code": "AW",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Åland Islands",
+      "code": "AX",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Azerbaijan",
+      "code": "AZ",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Bosnia and Herzegovina",
+      "code": "BA",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Barbados",
+      "code": "BB",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Bangladesh",
+      "code": "BD",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Belgium",
+      "code": "BE",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Burkina Faso",
+      "code": "BF",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Bulgaria",
+      "code": "BG",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Bahrain",
+      "code": "BH",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Burundi",
+      "code": "BI",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Benin",
+      "code": "BJ",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Saint Barthélemy",
+      "code": "BL",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Bermuda",
+      "code": "BM",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Brunei",
+      "code": "BN",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Bolivia",
+      "code": "BO",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Caribbean Netherlands",
+      "code": "BQ",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Brazil",
+      "code": "BR",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Bahamas",
+      "code": "BS",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Bhutan",
+      "code": "BT",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Botswana",
+      "code": "BW",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Belarus",
+      "code": "BY",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Belize",
+      "code": "BZ",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Canada",
+      "code": "CA",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Cocos Islands",
+      "code": "CC",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Congo (DRC)",
+      "code": "CD",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Central African Republic",
+      "code": "CF",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Congo",
+      "code": "CG",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Switzerland",
+      "code": "CH",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Côte d'Ivoire",
+      "code": "CI",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Cook Islands",
+      "code": "CK",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Chile",
+      "code": "CL",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Cameroon",
+      "code": "CM",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Colombia",
+      "code": "CO",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Costa Rica",
+      "code": "CR",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Cape Verde",
+      "code": "CV",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Curaçao",
+      "code": "CW",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Christmas Island",
+      "code": "CX",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Cyprus",
+      "code": "CY",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Czech Republic",
+      "code": "CZ",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Germany",
+      "code": "DE",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Djibouti",
+      "code": "DJ",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Denmark",
+      "code": "DK",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Dominica",
+      "code": "DM",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Dominican Republic",
+      "code": "DO",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Algeria",
+      "code": "DZ",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Ecuador",
+      "code": "EC",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Estonia",
+      "code": "EE",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Egypt",
+      "code": "EG",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Western Sahara",
+      "code": "EH",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Eritrea",
+      "code": "ER",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Spain",
+      "code": "ES",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Ethiopia",
+      "code": "ET",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Finland",
+      "code": "FI",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Fiji",
+      "code": "FJ",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Falkland Islands",
+      "code": "FK",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Faroe Islands",
+      "code": "FO",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "France",
+      "code": "FR",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Gabon",
+      "code": "GA",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "United Kingdom",
+      "code": "GB",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Grenada",
+      "code": "GD",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Georgia",
+      "code": "GE",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "French Guiana",
+      "code": "GF",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Guernsey",
+      "code": "GG",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Ghana",
+      "code": "GH",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Gibraltar",
+      "code": "GI",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Greenland",
+      "code": "GL",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Gambia",
+      "code": "GM",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Guinea",
+      "code": "GN",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Guadeloupe",
+      "code": "GP",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Equatorial Guinea",
+      "code": "GQ",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Greece",
+      "code": "GR",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "South Georgia and the South Sandwich Islands",
+      "code": "GS",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Guatemala",
+      "code": "GT",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Guinea-Bissau",
+      "code": "GW",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Guyana",
+      "code": "GY",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Honduras",
+      "code": "HN",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Croatia",
+      "code": "HR",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Haiti",
+      "code": "HT",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Hungary",
+      "code": "HU",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Indonesia",
+      "code": "ID",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Ireland",
+      "code": "IE",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Israel",
+      "code": "IL",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Isle of Man",
+      "code": "IM",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "India",
+      "code": "IN",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "British Indian Ocean Territory",
+      "code": "IO",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Iraq",
+      "code": "IQ",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Iceland",
+      "code": "IS",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Italy",
+      "code": "IT",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Jersey",
+      "code": "JE",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Jamaica",
+      "code": "JM",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Jordan",
+      "code": "JO",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Japan",
+      "code": "JP",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Kenya",
+      "code": "KE",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Kyrgyzstan",
+      "code": "KG",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Cambodia",
+      "code": "KH",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Kiribati",
+      "code": "KI",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Comoros",
+      "code": "KM",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Saint Kitts and Nevis",
+      "code": "KN",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "South Korea",
+      "code": "KR",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Kuwait",
+      "code": "KW",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Cayman Islands",
+      "code": "KY",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Kazakhstan",
+      "code": "KZ",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Laos",
+      "code": "LA",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Lebanon",
+      "code": "LB",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Saint Lucia",
+      "code": "LC",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Liechtenstein",
+      "code": "LI",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Sri Lanka",
+      "code": "LK",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Liberia",
+      "code": "LR",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Lesotho",
+      "code": "LS",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Lithuania",
+      "code": "LT",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Luxembourg",
+      "code": "LU",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Latvia",
+      "code": "LV",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Libya",
+      "code": "LY",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Morocco",
+      "code": "MA",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Monaco",
+      "code": "MC",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Moldova",
+      "code": "MD",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Montenegro",
+      "code": "ME",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Saint Martin",
+      "code": "MF",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Madagascar",
+      "code": "MG",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "North Macedonia",
+      "code": "MK",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Mali",
+      "code": "ML",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Myanmar",
+      "code": "MM",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Mongolia",
+      "code": "MN",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Macao",
+      "code": "MO",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Martinique",
+      "code": "MQ",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Mauritania",
+      "code": "MR",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Montserrat",
+      "code": "MS",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Malta",
+      "code": "MT",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Mauritius",
+      "code": "MU",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Maldives",
+      "code": "MV",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Malawi",
+      "code": "MW",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Mexico",
+      "code": "MX",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Malaysia",
+      "code": "MY",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Mozambique",
+      "code": "MZ",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Namibia",
+      "code": "NA",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "New Caledonia",
+      "code": "NC",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Niger",
+      "code": "NE",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Norfolk Island",
+      "code": "NF",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Nigeria",
+      "code": "NG",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Nicaragua",
+      "code": "NI",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Netherlands",
+      "code": "NL",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Norway",
+      "code": "NO",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Nepal",
+      "code": "NP",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Nauru",
+      "code": "NR",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Niue",
+      "code": "NU",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "New Zealand",
+      "code": "NZ",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Oman",
+      "code": "OM",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Panama",
+      "code": "PA",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Peru",
+      "code": "PE",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "French Polynesia",
+      "code": "PF",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Papua New Guinea",
+      "code": "PG",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Philippines",
+      "code": "PH",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Pakistan",
+      "code": "PK",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Poland",
+      "code": "PL",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Saint Pierre and Miquelon",
+      "code": "PM",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Pitcairn",
+      "code": "PN",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Palestine",
+      "code": "PS",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Portugal",
+      "code": "PT",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Paraguay",
+      "code": "PY",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Qatar",
+      "code": "QA",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Réunion",
+      "code": "RE",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Romania",
+      "code": "RO",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Serbia",
+      "code": "RS",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Russia",
+      "code": "RU",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Rwanda",
+      "code": "RW",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Saudi Arabia",
+      "code": "SA",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Solomon Islands",
+      "code": "SB",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Seychelles",
+      "code": "SC",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Sudan",
+      "code": "SD",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Sweden",
+      "code": "SE",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Singapore",
+      "code": "SG",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Saint Helena",
+      "code": "SH",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Slovenia",
+      "code": "SI",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Svalbard and Jan Mayen",
+      "code": "SJ",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Slovakia",
+      "code": "SK",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Sierra Leone",
+      "code": "SL",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "San Marino",
+      "code": "SM",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Senegal",
+      "code": "SN",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Somalia",
+      "code": "SO",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Suriname",
+      "code": "SR",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "South Sudan",
+      "code": "SS",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "São Tomé and Príncipe",
+      "code": "ST",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "El Salvador",
+      "code": "SV",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Sint Maarten",
+      "code": "SX",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Eswatini",
+      "code": "SZ",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Chad",
+      "code": "TD",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "French Southern Territories",
+      "code": "TF",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Togo",
+      "code": "TG",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Thailand",
+      "code": "TH",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Tajikistan",
+      "code": "TJ",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Tokelau",
+      "code": "TK",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Timor-Leste",
+      "code": "TL",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Turkmenistan",
+      "code": "TM",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Tunisia",
+      "code": "TN",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Tonga",
+      "code": "TO",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Turkey",
+      "code": "TR",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Trinidad and Tobago",
+      "code": "TT",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Tuvalu",
+      "code": "TV",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Tanzania",
+      "code": "TZ",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Ukraine",
+      "code": "UA",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Uganda",
+      "code": "UG",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "U.S. Outlying Islands",
+      "code": "UM",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "United States",
+      "code": "US",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Uruguay",
+      "code": "UY",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Uzbekistan",
+      "code": "UZ",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Vatican City",
+      "code": "VA",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Saint Vincent and the Grenadines",
+      "code": "VC",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Venezuela",
+      "code": "VE",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "British Virgin Islands",
+      "code": "VG",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Vietnam",
+      "code": "VN",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Vanuatu",
+      "code": "VU",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Samoa",
+      "code": "WS",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Yemen",
+      "code": "YE",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Mayotte",
+      "code": "YT",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "South Africa",
+      "code": "ZA",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Zambia",
+      "code": "ZM",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    },
+    {
+      "country": "Zimbabwe",
+      "code": "ZW",
+      "success": true,
+      "rateCount": 3,
+      "hasRates": true,
+      "isValidFormat": true,
+      "error": null
+    }
+  ]
+}

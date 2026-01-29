@@ -1,0 +1,414 @@
+{
+  "timestamp": "2026-01-28T21:15:23.420Z",
+  "totalCountries": 45,
+  "successCount": 0,
+  "noRatesCount": 0,
+  "failureCount": 45,
+  "results": [
+    {
+      "country": "Australia",
+      "code": "AU",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "United States",
+      "code": "US",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "United Kingdom",
+      "code": "GB",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Canada",
+      "code": "CA",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Germany",
+      "code": "DE",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "France",
+      "code": "FR",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Italy",
+      "code": "IT",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Spain",
+      "code": "ES",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Netherlands",
+      "code": "NL",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Belgium",
+      "code": "BE",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Switzerland",
+      "code": "CH",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Austria",
+      "code": "AT",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Sweden",
+      "code": "SE",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Norway",
+      "code": "NO",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Denmark",
+      "code": "DK",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Finland",
+      "code": "FI",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Poland",
+      "code": "PL",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Czech Republic",
+      "code": "CZ",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Ireland",
+      "code": "IE",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Portugal",
+      "code": "PT",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Greece",
+      "code": "GR",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "New Zealand",
+      "code": "NZ",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Japan",
+      "code": "JP",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "South Korea",
+      "code": "KR",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Singapore",
+      "code": "SG",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Malaysia",
+      "code": "MY",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Thailand",
+      "code": "TH",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Philippines",
+      "code": "PH",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Indonesia",
+      "code": "ID",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "India",
+      "code": "IN",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "China",
+      "code": "CN",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Hong Kong",
+      "code": "HK",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Taiwan",
+      "code": "TW",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Mexico",
+      "code": "MX",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Brazil",
+      "code": "BR",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Argentina",
+      "code": "AR",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Chile",
+      "code": "CL",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Colombia",
+      "code": "CO",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "South Africa",
+      "code": "ZA",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "United Arab Emirates",
+      "code": "AE",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Saudi Arabia",
+      "code": "SA",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Israel",
+      "code": "IL",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Turkey",
+      "code": "TR",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Russia",
+      "code": "RU",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    },
+    {
+      "country": "Fiji",
+      "code": "FJ",
+      "success": false,
+      "rateCount": 0,
+      "hasRates": false,
+      "error": "Non-whitespace before first tag.\nLine: 0\nColumn: 1\nChar: [",
+      "rates": []
+    }
+  ]
+}

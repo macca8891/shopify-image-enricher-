@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Test</title>
+</head>
+<body>
+    <h1>Debug Product Loading</h1>
+    <button onclick="testAPI()">Test API</button>
+    <div id="result"></div>
+    
+    <script>
+        function testAPI() {
+            console.log('Testing API...');
+            document.getElementById('result').innerHTML = 'Loading...';
+            
+            fetch('/api/all-products?status=active&limit=5')
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('API Response:', data);
+                    document.getElementById('result').innerHTML = 
+                        `<h3>SUCCESS!</h3>
+                         <p>Total products: ${data.total}</p>
+                         <p>Products received: ${data.products ? data.products.length : 0}</p>
+                         <p>First product: ${data.products && data.products[0] ? data.products[0].title : 'None'}</p>`;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('result').innerHTML = `<h3>ERROR!</h3><p>${error.message}</p>`;
+                });
+        }
+    </script>
+</body>
+</html>
+
+
+
+
