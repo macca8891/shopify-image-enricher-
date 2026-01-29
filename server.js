@@ -1,3 +1,8 @@
+// Early logging to verify server.js is executing
+console.log('🚀 Server.js starting...');
+console.log('PORT:', process.env.PORT);
+console.log('NODE_ENV:', process.env.NODE_ENV);
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -7,6 +12,7 @@ const path = require('path');
 require('dotenv').config();
 
 const logger = require('./utils/logger');
+console.log('✅ Logger loaded');
 
 // Clear require cache for routes to ensure fresh code on restart
 if (process.env.NODE_ENV !== 'production') {
@@ -14,14 +20,22 @@ if (process.env.NODE_ENV !== 'production') {
     delete require.cache[require.resolve('./routes/shipping')];
 }
 
-// Import routes
-const authRoutes = require('./routes/auth');
-const productRoutes = require('./routes/products');
-const imageRoutes = require('./routes/images');
-const pipelineRoutes = require('./routes/pipeline');
-const buckyDropRoutes = require('./routes/buckydrop');
-const shippingRoutes = require('./routes/shipping');
-const webhookRoutes = require('./routes/webhooks');
+// Import routes (with error handling)
+let authRoutes, productRoutes, imageRoutes, pipelineRoutes, buckyDropRoutes, shippingRoutes, webhookRoutes;
+try {
+    console.log('Loading routes...');
+    authRoutes = require('./routes/auth');
+    productRoutes = require('./routes/products');
+    imageRoutes = require('./routes/images');
+    pipelineRoutes = require('./routes/pipeline');
+    buckyDropRoutes = require('./routes/buckydrop');
+    shippingRoutes = require('./routes/shipping');
+    webhookRoutes = require('./routes/webhooks');
+    console.log('✅ Routes loaded');
+} catch (error) {
+    console.error('❌ Error loading routes:', error);
+    throw error;
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -152,13 +166,20 @@ app.use('*', (req, res) => {
 });
 
 // Start server first (non-blocking)
-app.listen(PORT, () => {
-    logger.info(`🚀 BuckyDrop Shipping running on port ${PORT}`);
-    logger.info(`Environment: ${process.env.NODE_ENV || 'undefined'}`);
-    logger.info(`MONGODB_URI: ${process.env.MONGODB_URI ? 'SET (' + process.env.MONGODB_URI.substring(0, 30) + '...)' : 'NOT SET'}`);
-    logger.info(`SHOPIFY_API_KEY: ${process.env.SHOPIFY_API_KEY ? 'SET' : 'NOT SET'}`);
-    logger.info(`🚚 Ready to calculate shipping rates!`);
-});
+try {
+    app.listen(PORT, () => {
+        console.log(`🚀 Server listening on port ${PORT}`);
+        logger.info(`🚀 BuckyDrop Shipping running on port ${PORT}`);
+        logger.info(`Environment: ${process.env.NODE_ENV || 'undefined'}`);
+        logger.info(`MONGODB_URI: ${process.env.MONGODB_URI ? 'SET (' + process.env.MONGODB_URI.substring(0, 30) + '...)' : 'NOT SET'}`);
+        logger.info(`SHOPIFY_API_KEY: ${process.env.SHOPIFY_API_KEY ? 'SET' : 'NOT SET'}`);
+        logger.info(`🚚 Ready to calculate shipping rates!`);
+    });
+} catch (error) {
+    console.error('❌ Error starting server:', error);
+    logger.error('❌ Error starting server:', error);
+    process.exit(1);
+}
 
 // MongoDB connection (non-blocking - don't exit on failure)
 const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/shopify-image-enricher';
