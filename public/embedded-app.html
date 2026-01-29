@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BuckyDrop Shipping</title>
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge-utils.js"></script>
     <style>
         * {
             margin: 0;
@@ -139,16 +140,30 @@
         try {
             if (window.shopify && window.shopify.config) {
                 app = window.shopify.config.app;
+                console.log('App Bridge config:', app);
+                
                 // Use App Bridge's authenticated fetch for API calls
+                // App Bridge 3.0 uses window.shopify.utils.authenticatedFetch
                 if (window.shopify && window.shopify.utils && window.shopify.utils.authenticatedFetch) {
                     authenticatedFetch = window.shopify.utils.authenticatedFetch(app);
-                    console.log('App Bridge initialized with authenticated fetch');
+                    console.log('✅ App Bridge authenticated fetch initialized');
+                } else if (window.shopify && window.shopify.createApp && window.shopify.utils) {
+                    // Try alternative initialization
+                    const shopifyApp = window.shopify.createApp(app);
+                    if (shopifyApp && shopifyApp.utils && shopifyApp.utils.authenticatedFetch) {
+                        authenticatedFetch = shopifyApp.utils.authenticatedFetch();
+                        console.log('✅ App Bridge authenticated fetch initialized (alternative)');
+                    } else {
+                        console.warn('⚠️ App Bridge utils not available, using regular fetch');
+                    }
                 } else {
-                    console.log('App Bridge initialized but authenticatedFetch not available');
+                    console.warn('⚠️ App Bridge not fully initialized, using regular fetch');
                 }
+            } else {
+                console.warn('⚠️ window.shopify not available');
             }
         } catch (e) {
-            console.log('App Bridge not available:', e);
+            console.error('❌ App Bridge initialization error:', e);
         }
 
         async function checkStatus() {
