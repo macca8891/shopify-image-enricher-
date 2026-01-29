@@ -90,6 +90,22 @@ router.get('/shopify/callback', async (req, res) => {
         return res.status(503).json({ error: 'Shopify OAuth not configured' });
     }
     
+    // Check if MongoDB is connected
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState !== 1) {
+        logger.error('MongoDB not connected. ReadyState:', mongoose.connection.readyState);
+        return res.status(503).send(`
+            <html>
+            <body>
+                <h1>Authentication Failed</h1>
+                <p>Database connection error. Please check MongoDB configuration.</p>
+                <p>MongoDB Status: ${mongoose.connection.readyState === 0 ? 'Disconnected' : mongoose.connection.readyState === 2 ? 'Connecting' : 'Unknown'}</p>
+                <p><a href="${process.env.SHOPIFY_APP_URL || 'http://localhost:3001'}">Return to app</a></p>
+            </body>
+            </html>
+        `);
+    }
+    
     try {
         const callback = await shopify.auth.callback({
             rawRequest: req,
