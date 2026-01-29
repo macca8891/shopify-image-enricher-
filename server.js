@@ -143,9 +143,22 @@ app.use('/api/buckydrop', buckyDropRoutes);
 app.use('/api/shipping', shippingRoutes);
 app.use('/api/webhooks', webhookRoutes);
 
-// Serve main BuckyDrop Shipping app (BEFORE static files)
+// Serve embedded app for Shopify admin (check for embedded context)
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'app.html'));
+    // Check if request is from Shopify admin (embedded app)
+    const shop = req.query.shop;
+    const hmac = req.query.hmac;
+    const isEmbedded = req.headers['sec-fetch-site'] === 'same-origin' || 
+                       req.headers.referer?.includes('admin.shopify.com') ||
+                       hmac; // HMAC indicates embedded app request
+    
+    if (isEmbedded && shop) {
+        // Serve embedded app interface
+        res.sendFile(path.join(__dirname, 'public', 'embedded-app.html'));
+    } else {
+        // Serve standalone app interface
+        res.sendFile(path.join(__dirname, 'public', 'app.html'));
+    }
 });
 
 // Static files (AFTER routes to avoid serving index.html)

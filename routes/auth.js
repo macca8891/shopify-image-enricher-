@@ -28,7 +28,7 @@ if (process.env.SHOPIFY_API_KEY && process.env.SHOPIFY_API_SECRET) {
             scopes: (process.env.SHOPIFY_SCOPES || 'read_products,write_products,read_orders,read_shipping,write_shipping').split(',').map(s => s.trim()),
             hostName: hostName,
             apiVersion: ApiVersion.April23,
-            isEmbeddedApp: false,
+            isEmbeddedApp: true, // Enable embedded app mode for Shopify admin
         });
         logger.info('✅ Shopify OAuth configured');
     } catch (error) {

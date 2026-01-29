@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuckyDrop Shipping</title>
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f6f6f7;
+            color: #202223;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        .card {
+            background: white;
+            border: 1px solid #e1e3e5;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .card h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #202223;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 16px;
+        }
+        .status.active {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #008060;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+        .button:hover {
+            background: #006e52;
+        }
+        .button.secondary {
+            background: #6d7175;
+        }
+        .info-box {
+            background: #f6f6f7;
+            border-left: 4px solid #008060;
+            padding: 16px;
+            margin-top: 16px;
+            border-radius: 4px;
+        }
+        .info-box p {
+            margin-bottom: 8px;
+            color: #202223;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Carrier Service Status -->
+        <div class="card">
+            <h2>Carrier Service Status</h2>
+            <div id="statusContainer">
+                <span class="status inactive" id="statusBadge">Checking...</span>
+                <p id="statusMessage" class="status-message">Loading carrier service status...</p>
+            </div>
+            <div style="margin-top: 16px;">
+                <button class="button" id="enableBtn" onclick="enableCarrierService()">Enable Carrier Service</button>
+                <button class="button secondary" id="disableBtn" onclick="disableCarrierService()" style="display: none;">Disable Carrier Service</button>
+                <button class="button secondary" onclick="checkStatus()">Refresh Status</button>
+            </div>
+            <div class="info-box" id="infoBox" style="display: none;">
+                <p><strong>✅ Carrier service is active!</strong></p>
+                <p>To use BuckyDrop rates at checkout:</p>
+                <ol style="margin-left: 20px; margin-top: 8px;">
+                    <li>Go to <strong>Settings → Shipping & delivery</strong></li>
+                    <li>Click <strong>"Manage rates"</strong> for your shipping zone</li>
+                    <li>Click <strong>"Add rate"</strong></li>
+                    <li>Select <strong>"Use carrier or app to calculate rates"</strong></li>
+                    <li>Choose <strong>"BuckyDrop Shipping"</strong> from the dropdown</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- How It Works -->
+        <div class="card">
+            <h2>How It Works</h2>
+            <p>BuckyDrop Shipping integrates with Shopify's Carrier Calculated Shipping (CCS) to show real-time shipping rates at checkout.</p>
+            <ul style="margin-left: 20px; margin-top: 12px;">
+                <li>Reads product dimensions and weight from metafields</li>
+                <li>Calls BuckyDrop API to calculate shipping rates</li>
+                <li>Shows shipping rates at checkout</li>
+                <li>Rates are calculated in real-time based on cart contents and destination</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Initialize App Bridge
+        let app;
+        try {
+            const shop = new URLSearchParams(window.location.search).get('shop');
+            if (shop && window.shopify && window.shopify.config) {
+                app = window.shopify.config.app;
+            }
+        } catch (e) {
+            console.log('App Bridge not available, running in standalone mode');
+        }
+
+        // Get shop domain from URL or App Bridge
+        const urlParams = new URLSearchParams(window.location.search);
+        const shopDomain = urlParams.get('shop') || '';
+
+        async function checkStatus() {
+            if (!shopDomain) {
+                console.error('No shop parameter in URL');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/shipping/carrier-service-status?shop=${shopDomain}`);
+                const data = await response.json();
+
+                const statusBadge = document.getElementById('statusBadge');
+                const statusMessage = document.getElementById('statusMessage');
+                const enableBtn = document.getElementById('enableBtn');
+                const disableBtn = document.getElementById('disableBtn');
+                const infoBox = document.getElementById('infoBox');
+
+                if (data.registered) {
+                    statusBadge.textContent = 'Active';
+                    statusBadge.className = 'status active';
+                    const formatInfo = data.format ? ` (Format: ${data.format.toUpperCase()})` : '';
+                    statusMessage.textContent = `Carrier service is registered (ID: ${data.carrierServiceId})${formatInfo}`;
+                    enableBtn.style.display = 'none';
+                    disableBtn.style.display = 'inline-block';
+                    infoBox.style.display = 'block';
+                } else {
+                    statusBadge.textContent = 'Inactive';
+                    statusBadge.className = 'status inactive';
+                    statusMessage.textContent = data.message || 'Carrier service is not registered';
+                    enableBtn.style.display = 'inline-block';
+                    disableBtn.style.display = 'none';
+                    infoBox.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error checking status:', error);
+            }
+        }
+
+        async function enableCarrierService() {
+            if (!shopDomain) {
+                alert('Error: No shop parameter in URL');
+                return;
+            }
+
+            const btn = document.getElementById('enableBtn');
+            btn.disabled = true;
+            btn.textContent = 'Enabling...';
+
+            try {
+                const response = await fetch('/api/shipping/register-carrier-service', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ shop: shopDomain })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    await checkStatus();
+                } else {
+                    alert(data.error || 'Failed to register carrier service');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Enable Carrier Service';
+            }
+        }
+
+        async function disableCarrierService() {
+            if (!confirm('Unregister the carrier service? BuckyDrop rates will no longer show at checkout.')) {
+                return;
+            }
+
+            const btn = document.getElementById('disableBtn');
+            btn.disabled = true;
+            btn.textContent = 'Disabling...';
+
+            try {
+                const response = await fetch(`/api/shipping/unregister-carrier-service?shop=${shopDomain}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    await checkStatus();
+                } else {
+                    alert(data.error || 'Failed to unregister carrier service');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Disable Carrier Service';
+            }
+        }
+
+        // Check status on load
+        if (shopDomain) {
+            checkStatus();
+        }
+    </script>
+</body>
+</html>
+
