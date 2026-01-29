@@ -158,8 +158,17 @@
                 console.log('Initializing App Bridge...');
                 console.log('Host param:', host);
                 console.log('window.shopify:', !!window.shopify);
+                console.log('window.shopify keys:', window.shopify ? Object.keys(window.shopify) : 'N/A');
                 console.log('window.shopify.AppBridge:', !!window.shopify?.AppBridge);
                 console.log('window.AppBridge:', !!window.AppBridge);
+                
+                // Inspect what's actually available
+                if (window.shopify) {
+                    console.log('window.shopify contents:', JSON.stringify(Object.keys(window.shopify), null, 2));
+                    if (window.shopify.config) {
+                        console.log('window.shopify.config:', window.shopify.config);
+                    }
+                }
                 
                 // Try different App Bridge initialization methods
                 if (host) {
@@ -258,7 +267,20 @@
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
                 
-                // Use App Bridge authenticated fetch if available, otherwise regular fetch
+                // Get session token from URL or App Bridge
+                let sessionToken = urlParams.get('session');
+                
+                // Try to get session token from App Bridge if available
+                if (window.shopify && window.shopify.utils && window.shopify.utils.getSessionToken) {
+                    try {
+                        sessionToken = await window.shopify.utils.getSessionToken();
+                        console.log('Got session token from App Bridge');
+                    } catch (e) {
+                        console.warn('Could not get session token from App Bridge:', e);
+                    }
+                }
+                
+                // Use App Bridge authenticated fetch if available, otherwise use session token
                 let response;
                 if (authenticatedFetch) {
                     console.log('Using App Bridge authenticated fetch');
@@ -269,8 +291,19 @@
                         },
                         signal: controller.signal
                     });
+                } else if (sessionToken) {
+                    console.log('Using session token for authentication');
+                    response = await fetch(url, {
+                        method: 'GET',
+                        credentials: 'include',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Authorization': `Bearer ${sessionToken}`
+                        },
+                        signal: controller.signal
+                    });
                 } else {
-                    console.log('Using regular fetch (App Bridge not available)');
+                    console.log('Using regular fetch (no authentication)');
                     response = await fetch(url, {
                         method: 'GET',
                         credentials: 'include',
