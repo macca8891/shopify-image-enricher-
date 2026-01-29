@@ -153,20 +153,30 @@
 
             try {
                 console.log('Checking status for shop:', shopDomain);
-                const url = `/api/shipping/carrier-service-status?shop=${encodeURIComponent(shopDomain)}`;
+                // Use full URL for embedded apps to avoid CORS issues
+                const baseUrl = window.location.origin;
+                const url = `${baseUrl}/api/shipping/carrier-service-status?shop=${encodeURIComponent(shopDomain)}`;
                 console.log('Fetching:', url);
                 
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+                
                 const response = await fetch(url, {
-                    credentials: 'include', // Include cookies for CORS
+                    method: 'GET',
+                    credentials: 'include',
                     headers: {
-                        'Content-Type': 'application/json'
-                    }
+                        'Accept': 'application/json'
+                    },
+                    signal: controller.signal
                 });
                 
+                clearTimeout(timeoutId);
                 console.log('Response status:', response.status);
                 
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    const errorText = await response.text();
+                    console.error('Response error:', errorText);
+                    throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 100)}`);
                 }
                 
                 const data = await response.json();
@@ -196,7 +206,13 @@
                 }
             } catch (error) {
                 console.error('Error checking status:', error);
-                document.getElementById('statusMessage').textContent = `Error: ${error.message}. Check browser console for details.`;
+                let errorMsg = error.message;
+                if (error.name === 'AbortError') {
+                    errorMsg = 'Request timed out. The server may be slow or unreachable.';
+                } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    errorMsg = 'Network error. Check if the server is running and accessible.';
+                }
+                document.getElementById('statusMessage').textContent = `Error: ${errorMsg}`;
                 document.getElementById('statusBadge').textContent = 'Error';
                 document.getElementById('statusBadge').className = 'status inactive';
             }
