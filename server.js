@@ -108,8 +108,8 @@ app.use(cors({
             return callback(null, true);
         }
         
-        // Allow Shopify admin URLs
-        if (origin.includes('myshopify.com') || origin.includes('shopify.com')) {
+        // Allow Shopify admin URLs (for embedded apps)
+        if (origin.includes('myshopify.com') || origin.includes('shopify.com') || origin.includes('admin.shopify.com')) {
             return callback(null, true);
         }
         
@@ -118,9 +118,17 @@ app.use(cors({
             return callback(null, true);
         }
         
+        // In production, be more permissive for embedded apps
+        // Allow any Shopify domain
+        if (process.env.NODE_ENV === 'production' && (origin.includes('.myshopify.com') || origin.includes('.shopify.com'))) {
+            return callback(null, true);
+        }
+        
         callback(new Error('Not allowed by CORS'));
     },
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Shopify-Shop-Domain', 'X-Shopify-Access-Token', 'X-Requested-With']
 }));
 
 // Capture raw body for webhook verification
