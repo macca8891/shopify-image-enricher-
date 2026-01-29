@@ -134,33 +134,36 @@
         console.log('Shop domain:', shopDomain);
         console.log('Full URL:', window.location.href);
         
-        // Initialize App Bridge
+        // Initialize App Bridge from URL parameters
         let app;
         let authenticatedFetch;
+        
         try {
-            if (window.shopify && window.shopify.config) {
-                app = window.shopify.config.app;
-                console.log('App Bridge config:', app);
+            // Extract App Bridge config from URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const apiKey = '862d69c809407d3bc3afceedcd9aad8e'; // From environment
+            const host = urlParams.get('host');
+            
+            if (host && window.shopify && window.shopify.createApp) {
+                // Initialize App Bridge 3.0
+                app = window.shopify.createApp({
+                    apiKey: apiKey,
+                    host: host
+                });
                 
-                // Use App Bridge's authenticated fetch for API calls
-                // App Bridge 3.0 uses window.shopify.utils.authenticatedFetch
-                if (window.shopify && window.shopify.utils && window.shopify.utils.authenticatedFetch) {
+                console.log('✅ App Bridge initialized with config');
+                
+                // Get authenticated fetch
+                if (app && window.shopify && window.shopify.utils && window.shopify.utils.authenticatedFetch) {
                     authenticatedFetch = window.shopify.utils.authenticatedFetch(app);
-                    console.log('✅ App Bridge authenticated fetch initialized');
-                } else if (window.shopify && window.shopify.createApp && window.shopify.utils) {
-                    // Try alternative initialization
-                    const shopifyApp = window.shopify.createApp(app);
-                    if (shopifyApp && shopifyApp.utils && shopifyApp.utils.authenticatedFetch) {
-                        authenticatedFetch = shopifyApp.utils.authenticatedFetch();
-                        console.log('✅ App Bridge authenticated fetch initialized (alternative)');
-                    } else {
-                        console.warn('⚠️ App Bridge utils not available, using regular fetch');
-                    }
+                    console.log('✅ App Bridge authenticated fetch ready');
                 } else {
-                    console.warn('⚠️ App Bridge not fully initialized, using regular fetch');
+                    console.warn('⚠️ authenticatedFetch not available, using regular fetch');
                 }
             } else {
-                console.warn('⚠️ window.shopify not available');
+                console.warn('⚠️ App Bridge not available, using regular fetch');
+                console.log('Host param:', host);
+                console.log('window.shopify:', !!window.shopify);
             }
         } catch (e) {
             console.error('❌ App Bridge initialization error:', e);
