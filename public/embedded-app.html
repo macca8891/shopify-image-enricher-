@@ -133,12 +133,19 @@
         console.log('Shop domain:', shopDomain);
         console.log('Full URL:', window.location.href);
         
-        // Initialize App Bridge (if available)
+        // Initialize App Bridge
         let app;
+        let authenticatedFetch;
         try {
             if (window.shopify && window.shopify.config) {
                 app = window.shopify.config.app;
-                console.log('App Bridge initialized');
+                // Use App Bridge's authenticated fetch for API calls
+                if (window.shopify && window.shopify.utils && window.shopify.utils.authenticatedFetch) {
+                    authenticatedFetch = window.shopify.utils.authenticatedFetch(app);
+                    console.log('App Bridge initialized with authenticated fetch');
+                } else {
+                    console.log('App Bridge initialized but authenticatedFetch not available');
+                }
             }
         } catch (e) {
             console.log('App Bridge not available:', e);
@@ -161,14 +168,28 @@
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
                 
-                const response = await fetch(url, {
-                    method: 'GET',
-                    credentials: 'include',
-                    headers: {
-                        'Accept': 'application/json'
-                    },
-                    signal: controller.signal
-                });
+                // Use App Bridge authenticated fetch if available, otherwise regular fetch
+                let response;
+                if (authenticatedFetch) {
+                    console.log('Using App Bridge authenticated fetch');
+                    response = await authenticatedFetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json'
+                        },
+                        signal: controller.signal
+                    });
+                } else {
+                    console.log('Using regular fetch (App Bridge not available)');
+                    response = await fetch(url, {
+                        method: 'GET',
+                        credentials: 'include',
+                        headers: {
+                            'Accept': 'application/json'
+                        },
+                        signal: controller.signal
+                    });
+                }
                 
                 clearTimeout(timeoutId);
                 console.log('Response status:', response.status);
