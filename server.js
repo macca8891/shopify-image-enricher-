@@ -40,19 +40,22 @@ try {
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Security middleware
+// Security middleware - Allow embedding in Shopify admin
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.shopify.com"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.shopify.com", "https://*.shopify.com"],
             scriptSrcAttr: ["'unsafe-inline'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             imgSrc: ["'self'", "data:", "https:", "http:"],
-            connectSrc: ["'self'", "https:"],
+            connectSrc: ["'self'", "https:", "https://*.shopify.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            frameSrc: ["'self'", "https://*.shopify.com", "https://admin.shopify.com"],
+            frameAncestors: ["'self'", "https://*.myshopify.com", "https://admin.shopify.com"],
         },
     },
+    frameguard: false, // Disable X-Frame-Options to allow embedding in Shopify admin
 }));
 
 // Compression middleware - SKIP carrier-service endpoint (Shopify rejects compressed XML)
@@ -70,7 +73,11 @@ app.use(compression({
 // CORS configuration
 // Allow Google Apps Script and other origins
 const allowedOrigins = process.env.NODE_ENV === 'production' 
-    ? [process.env.SHOPIFY_APP_URL] 
+    ? [
+        process.env.SHOPIFY_APP_URL,
+        'https://admin.shopify.com',
+        'https://*.myshopify.com'
+    ].filter(Boolean)
     : [
         'http://localhost:3001', 
         'https://admin.shopify.com',
