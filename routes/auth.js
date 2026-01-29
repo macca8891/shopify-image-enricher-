@@ -1,15 +1,22 @@
 const express = require('express');
+const crypto = require('crypto'); // Explicitly require crypto for Shopify API
 const Shop = require('../models/Shop');
 const logger = require('../utils/logger');
 
 const router = express.Router();
 
+// Ensure crypto is available globally (for Shopify API)
+if (typeof global !== 'undefined' && !global.crypto) {
+    global.crypto = crypto;
+}
+
 // Initialize Shopify API only if credentials are available
 let shopify = null;
 if (process.env.SHOPIFY_API_KEY && process.env.SHOPIFY_API_SECRET) {
     try {
-        const { shopifyApi, ApiVersion } = require('@shopify/shopify-api');
+        // Load adapter FIRST before importing shopifyApi
         require('@shopify/shopify-api/adapters/node');
+        const { shopifyApi, ApiVersion } = require('@shopify/shopify-api');
         
         // Get hostName - just the domain, no protocol
         let hostName = process.env.SHOPIFY_APP_URL || 'localhost:3001';
