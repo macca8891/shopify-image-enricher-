@@ -12,8 +12,10 @@ require('@shopify/shopify-api/adapters/node');
 
 const router = express.Router();
 
-// Store last request details for debugging
+// Store last request details for debugging (keep last 10 requests)
 let lastRequestDetails = null;
+let recentRequests = []; // Store last 10 requests
+const MAX_RECENT_REQUESTS = 10;
 
 // Stub endpoints to prevent server crash - these need to be implemented
 router.post('/calculate', async (req, res) => {
@@ -1049,7 +1051,7 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         }
 
         // Store last request details for debugging
-        lastRequestDetails = {
+        const requestDetails = {
             timestamp: new Date().toISOString(),
             shop: shopDomain,
             destination: destination.country_code || destination.country,
@@ -1071,6 +1073,12 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             isBattery: productInfo.isBattery,
             cached: false
         };
+        
+        lastRequestDetails = requestDetails;
+        recentRequests.push(requestDetails);
+        if (recentRequests.length > MAX_RECENT_REQUESTS) {
+            recentRequests.shift(); // Remove oldest
+        }
         
         // Log shipment details prominently to console (always visible)
         console.log(`\n📦 SHIPMENT DETAILS:`);
@@ -1098,7 +1106,7 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         
         if (cachedRates) {
             // Store request details even for cache hits
-            lastRequestDetails = {
+            const requestDetails = {
                 timestamp: new Date().toISOString(),
                 shop: shopDomain,
                 destination: destination.country_code || destination.country,
@@ -1120,6 +1128,12 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                 isBattery: productInfo.isBattery,
                 cached: true
             };
+            
+            lastRequestDetails = requestDetails;
+            recentRequests.push(requestDetails);
+            if (recentRequests.length > MAX_RECENT_REQUESTS) {
+                recentRequests.shift(); // Remove oldest
+            }
             
             logger.info(`⚡ Cache HIT! Returning cached rates (key: ${cacheKey.substring(0, 8)}...) - cache check: ${cacheCheckTime}ms`);
             const responseTime = Date.now() - startTime;
@@ -2072,7 +2086,9 @@ router.get('/last-request-details', async (req, res) => {
     res.json({
         success: true,
         lastRequest: lastRequestDetails || null,
-        message: lastRequestDetails ? 'Last request details found' : 'No requests yet'
+        recentRequests: recentRequests.slice(-5), // Last 5 requests
+        totalRequests: recentRequests.length,
+        message: lastRequestDetails ? 'Last request details found' : 'No requests yet. Make a checkout request to see details here.'
     });
 });
 
