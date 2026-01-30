@@ -1179,21 +1179,116 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         const allAvailableRoutes = [];
         
         try {
-            // Calculate shipping for the ENTIRE cart as one shipment
-            // Pass total quantity so BuckyDrop can calculate correctly for multiple items
-            const buckyDropStartTime = Date.now();
-            const result = await shippingService.calculateProductShipping(
+            // OPTION 1: Calculate consolidated shipping (entire cart as one shipment)
+            const consolidatedStartTime = Date.now();
+            logger.info(`📦 Calculating CONSOLIDATED shipping (all items together)`);
+            const consolidatedResult = await shippingService.calculateProductShipping(
                 combinedProduct,
                 combinedMetafields,
                 targetCountry,
-                totalQuantity // Pass total quantity to BuckyDrop API
+                totalQuantity
             );
-            const buckyDropTime = Date.now() - buckyDropStartTime;
-            logger.info(`⏱️ BuckyDrop API call took: ${buckyDropTime}ms`);
+            const consolidatedTime = Date.now() - consolidatedStartTime;
+            logger.info(`⏱️ Consolidated shipping calculation took: ${consolidatedTime}ms`);
+            
+            // OPTION 2: Calculate individual shipping for each product (parallel)
+            const individualStartTime = Date.now();
+            logger.info(`📦 Calculating INDIVIDUAL shipping (each product separately)`);
+            
+            const individualCalculations = await Promise.all(
+                processedItems.map(async (item, index) => {
+                    const itemWeightKg = ((item.grams || 0) / 1000) * (item.quantity || 1);
+                    const itemProduct = {
+                        title: item.name || `Product ${index + 1}`,
+                        variants: [{
+                            weight: itemWeightKg,
+                            weight_unit: 'kg'
+                        }]
+                    };
+                    
+                    // Get metafields for this specific product
+                    const itemMetafields = productDataResults[index]?.metafields || [];
+                    
+                    // Use default dimensions if not found
+                    const itemHeight = itemMetafields.find(m => 
+                        m.key === 'height_raw' || m.key === 'height_raw_mm_'
+                    )?.value || combinedDimensions.height;
+                    const itemDiameter = itemMetafields.find(m => 
+                        m.key === 'largest_diameter_raw' || m.key === 'largest_diameter_raw_mm_'
+                    )?.value || combinedDimensions.length;
+                    
+                    const itemMetafieldsFormatted = [
+                        { namespace: 'custom', key: 'weight_raw_kg_', value: itemWeightKg.toString() },
+                        { namespace: 'custom', key: 'height_raw', value: itemHeight.toString() },
+                        { namespace: 'custom', key: 'largest_diameter_raw', value: itemDiameter.toString() }
+                    ];
+                    
+                    try {
+                        const itemResult = await shippingService.calculateProductShipping(
+                            itemProduct,
+                            itemMetafieldsFormatted,
+                            targetCountry,
+                            item.quantity || 1
+                        );
+                        return {
+                            item: item,
+                            result: itemResult,
+                            cheapestPrice: Math.min(
+                                itemResult.maxCheapPriceUSD || 999999,
+                                itemResult.maxExpressPriceUSD || 999999
+                            )
+                        };
+                    } catch (error) {
+                        logger.warn(`  ⚠️ Failed to calculate individual shipping for ${item.name}: ${error.message}`);
+                        return null;
+                    }
+                })
+            );
+            
+            const individualTime = Date.now() - individualStartTime;
+            logger.info(`⏱️ Individual shipping calculations took: ${individualTime}ms (${processedItems.length} products)`);
+            
+            // Calculate total for individual shipping
+            const validIndividual = individualCalculations.filter(c => c !== null);
+            const totalIndividualPrice = validIndividual.reduce((sum, calc) => sum + calc.cheapestPrice, 0);
+            const consolidatedCheapestPrice = Math.min(
+                consolidatedResult.maxCheapPriceUSD || 999999,
+                consolidatedResult.maxExpressPriceUSD || 999999
+            );
+            
+            logger.info(`💰 Price Comparison:`);
+            logger.info(`   Consolidated: ${consolidatedCheapestPrice.toFixed(2)} CNY`);
+            logger.info(`   Individual (sum): ${totalIndividualPrice.toFixed(2)} CNY`);
+            logger.info(`   Savings: ${totalIndividualPrice > consolidatedCheapestPrice ? 'Consolidated is cheaper' : 'Individual is cheaper'} by ${Math.abs(totalIndividualPrice - consolidatedCheapestPrice).toFixed(2)} CNY`);
+            
+            // Collect individual shipping routes (best option per product)
+            const individualRoutes = [];
+            for (const calc of validIndividual) {
+                if (calc.result && calc.result.allRoutes && calc.result.allRoutes.length > 0) {
+                    // Find cheapest route for this product
+                    const cheapestRoute = calc.result.allRoutes
+                        .filter(r => r.available !== false && r.totalPrice)
+                        .sort((a, b) => (a.totalPrice || 999999) - (b.totalPrice || 999999))[0];
+                    
+                    if (cheapestRoute) {
+                        individualRoutes.push({
+                            ...cheapestRoute,
+                            productName: calc.item.name,
+                            productQuantity: calc.item.quantity
+                        });
+                    }
+                }
+            }
+            
+            // Use consolidated result for processing, but we'll add individual option too
+            const result = consolidatedResult;
+            const buckyDropTime = consolidatedTime + individualTime;
+            
+            logger.info(`📦 Individual shipping: Found ${individualRoutes.length} product routes (out of ${processedItems.length} products)`);
             
             // Log timing breakdown
             const timeBeforeProcessing = Date.now() - startTime;
-            logger.info(`⏱️ Timing breakdown: Shopify APIs=${shopifyApiTime}ms, BuckyDrop=${buckyDropTime}ms, Before processing=${timeBeforeProcessing}ms`);
+            logger.info(`⏱️ Timing breakdown: Shopify APIs=${shopifyApiTime}ms, BuckyDrop=${buckyDropTime}ms (Consolidated=${consolidatedTime}ms, Individual=${individualTime}ms), Before processing=${timeBeforeProcessing}ms`);
 
             // Collect all valid routes
             let routesToProcess = [];
@@ -1662,7 +1757,7 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             rates: []
         };
 
-        // Add all unique routes as shipping options
+        // Add all unique routes as shipping options (CONSOLIDATED - all items together)
         logger.info(`  💰 Converting prices to cents for JSON response:`);
         for (const route of uniqueRoutes) {
             // Round UP to nearest cent (Math.ceil) to avoid underestimating costs
@@ -1676,14 +1771,59 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             maxDate.setDate(maxDate.getDate() + route.maxDays);
             
             responseJson.rates.push({
-                service_name: route.service_name, // No days in brackets - delivery dates shown separately
-                service_code: route.service_code,
+                service_name: `${route.service_name} (Consolidated)`, // Mark as consolidated
+                service_code: route.service_code + '_CONSOLIDATED',
                 total_price: priceCents.toString(), // Ensure total_price is a string in cents
                 currency: route.currency,
                 min_delivery_date: minDate.toISOString().split('T')[0],
                 max_delivery_date: maxDate.toISOString().split('T')[0],
             });
-            logger.info(`  ✓ Added rate: ${route.service_name} - ${route.currency} ${route.priceFinal.toFixed(2)} (${priceCents} cents) - ${route.minDays}-${route.maxDays} days`);
+            logger.info(`  ✓ Added consolidated rate: ${route.service_name} - ${route.currency} ${route.priceFinal.toFixed(2)} (${priceCents} cents) - ${route.minDays}-${route.maxDays} days`);
+        }
+        
+        // Add INDIVIDUAL shipping option (each product shipped separately)
+        if (validIndividual.length > 0 && totalIndividualPrice > 0) {
+            // Find average delivery time from individual routes
+            let avgMinDays = 0;
+            let avgMaxDays = 0;
+            let individualRouteCount = 0;
+            
+            for (const calc of validIndividual) {
+                if (calc.result && calc.result.allRoutes && calc.result.allRoutes.length > 0) {
+                    const cheapestRoute = calc.result.allRoutes
+                        .filter(r => r.available !== false && r.totalPrice)
+                        .sort((a, b) => (a.totalPrice || 999999) - (b.totalPrice || 999999))[0];
+                    
+                    if (cheapestRoute) {
+                        avgMinDays += cheapestRoute.minTimeInTransit || cheapestRoute.min_time_in_transit || 5;
+                        avgMaxDays += cheapestRoute.maxTimeInTransit || cheapestRoute.max_time_in_transit || 15;
+                        individualRouteCount++;
+                    }
+                }
+            }
+            
+            if (individualRouteCount > 0) {
+                avgMinDays = Math.ceil(avgMinDays / individualRouteCount);
+                avgMaxDays = Math.ceil(avgMaxDays / individualRouteCount);
+                
+                const individualPriceCents = Math.ceil(totalIndividualPrice * 100);
+                const minDate = new Date();
+                minDate.setDate(minDate.getDate() + avgMinDays);
+                const maxDate = new Date();
+                maxDate.setDate(maxDate.getDate() + avgMaxDays);
+                
+                responseJson.rates.push({
+                    service_name: `Ship Separately (${processedItems.length} packages)`,
+                    service_code: 'INDIVIDUAL_SHIPPING',
+                    total_price: individualPriceCents.toString(),
+                    currency: 'CNY',
+                    min_delivery_date: minDate.toISOString().split('T')[0],
+                    max_delivery_date: maxDate.toISOString().split('T')[0],
+                });
+                
+                logger.info(`  ✓ Added individual shipping option: ${totalIndividualPrice.toFixed(2)} CNY (${individualPriceCents} cents) - ${avgMinDays}-${avgMaxDays} days`);
+                logger.info(`  💰 Comparison: Consolidated=${consolidatedCheapestPrice.toFixed(2)} CNY vs Individual=${totalIndividualPrice.toFixed(2)} CNY`);
+            }
         }
 
         // If no rates found, return empty JSON response
