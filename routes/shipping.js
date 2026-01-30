@@ -1045,8 +1045,14 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             combinedWeight = 0.1 * totalQuantity; // 0.1kg per item minimum
         }
 
-        logger.info(`📦 Combined shipment: ${combinedWeight.toFixed(3)}kg (${totalQuantity} items), H:${combinedDimensions.height}mm (single item), L:${combinedDimensions.length}mm W:${combinedDimensions.width}mm, count:${totalQuantity}`);
-        logger.info(`📦 Product info: isClothing=${productInfo.isClothing}, isBattery=${productInfo.isBattery}`);
+        logger.info(`═══════════════════════════════════════════════════════════`);
+        logger.info(`📦 SHIPMENT DETAILS FOR LAST RATE CALL:`);
+        logger.info(`   Weight: ${combinedWeight.toFixed(3)} kg`);
+        logger.info(`   Dimensions: ${combinedDimensions.height}mm (H) × ${combinedDimensions.length}mm (L) × ${combinedDimensions.width}mm (W)`);
+        logger.info(`   Quantity: ${totalQuantity} items`);
+        logger.info(`   Total Items in Cart: ${processedItems.length}`);
+        logger.info(`   Product Info: isClothing=${productInfo.isClothing}, isBattery=${productInfo.isBattery}`);
+        logger.info(`═══════════════════════════════════════════════════════════`);
 
         // STEP 2: Check cache first
         const cacheCheckStartTime = Date.now();
