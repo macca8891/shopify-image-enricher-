@@ -1661,9 +1661,14 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         // Log AFTER sending (async, won't delay response)
         setImmediate(() => {
             const totalTime = Date.now() - startTime;
-            const processingTime = totalTime - shopifyApiTime - buckyDropTime;
-            logger.info(`✅ Response sent: ${jsonResponse.rates.length} rates in ${totalTime}ms`);
-            logger.info(`⏱️ Full timing: Shopify=${shopifyApiTime}ms, BuckyDrop=${buckyDropTime}ms, Processing=${processingTime}ms, Total=${totalTime}ms`);
+            // Only calculate processing time if variables are defined (not cached response)
+            if (typeof shopifyApiTime !== 'undefined' && typeof buckyDropTime !== 'undefined') {
+                const processingTime = totalTime - shopifyApiTime - buckyDropTime;
+                logger.info(`✅ Response sent: ${jsonResponse.rates.length} rates in ${totalTime}ms`);
+                logger.info(`⏱️ Full timing: Shopify=${shopifyApiTime}ms, BuckyDrop=${buckyDropTime}ms, Processing=${processingTime}ms, Total=${totalTime}ms`);
+            } else {
+                logger.info(`✅ Response sent: ${jsonResponse.rates.length} rates in ${totalTime}ms`);
+            }
         });
         
         return;
