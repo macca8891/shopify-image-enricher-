@@ -944,37 +944,54 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             let metafields = [];
             let productDetails = null;
             
-            // Fetch metafields and product details in parallel for this product
+            // OPTIMIZATION: Try to get product data from our database first (much faster)
+            // Only call Shopify API if we don't have cached data
             if (productId) {
-                const [metafieldsResponse, productResponse] = await Promise.allSettled([
-                    axios.get(
-                        `https://${shopDomain}/admin/api/2025-01/products/${productId}/metafields.json`,
-                        {
-                            headers: {
-                                'X-Shopify-Access-Token': accessToken,
-                                'Content-Type': 'application/json'
-                            },
-                            timeout: 5000 // 5 second timeout per request
+                try {
+                    const cachedProduct = await Product.findOne({ 
+                        shopDomain: shopDomain,
+                        shopifyProductId: productId 
+                    }).select('metafields').lean();
+                    
+                    if (cachedProduct && cachedProduct.metafields && cachedProduct.metafields.length > 0) {
+                        metafields = cachedProduct.metafields;
+                        logger.info(`  ✅ Using cached metafields for product ${productId} (skipping Shopify API)`);
+                    } else {
+                        // Fallback: Fetch from Shopify API only if not in cache
+                        const [metafieldsResponse, productResponse] = await Promise.allSettled([
+                            axios.get(
+                                `https://${shopDomain}/admin/api/2025-01/products/${productId}/metafields.json`,
+                                {
+                                    headers: {
+                                        'X-Shopify-Access-Token': accessToken,
+                                        'Content-Type': 'application/json'
+                                    },
+                                    timeout: 3000 // Reduced to 3 seconds
+                                }
+                            ),
+                            axios.get(
+                                `https://${shopDomain}/admin/api/2025-01/products/${productId}.json`,
+                                {
+                                    headers: {
+                                        'X-Shopify-Access-Token': accessToken,
+                                        'Content-Type': 'application/json'
+                                    },
+                                    timeout: 3000 // Reduced to 3 seconds
+                                }
+                            )
+                        ]);
+                        
+                        if (metafieldsResponse.status === 'fulfilled') {
+                            metafields = metafieldsResponse.value.data.metafields || [];
                         }
-                    ),
-                    axios.get(
-                        `https://${shopDomain}/admin/api/2025-01/products/${productId}.json`,
-                        {
-                            headers: {
-                                'X-Shopify-Access-Token': accessToken,
-                                'Content-Type': 'application/json'
-                            },
-                            timeout: 5000 // 5 second timeout per request
+                        
+                        if (productResponse.status === 'fulfilled') {
+                            productDetails = productResponse.value.data.product;
                         }
-                    )
-                ]);
-                
-                if (metafieldsResponse.status === 'fulfilled') {
-                    metafields = metafieldsResponse.value.data.metafields || [];
-                }
-                
-                if (productResponse.status === 'fulfilled') {
-                    productDetails = productResponse.value.data.product;
+                    }
+                } catch (dbError) {
+                    // If DB lookup fails, skip API calls and use defaults
+                    logger.warn(`  ⚠️ Could not fetch product ${productId} from DB, using defaults: ${dbError.message}`);
                 }
             }
             
