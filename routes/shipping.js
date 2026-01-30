@@ -950,7 +950,11 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                 try {
                     const cachedProduct = await Product.findOne({ 
                         shopDomain: shopDomain,
-                        shopifyProductId: productId 
+                        $or: [
+                            { shopifyProductId: productId },
+                            { 'shopifyId': productId },
+                            { 'productId': productId }
+                        ]
                     }).select('metafields').lean();
                     
                     if (cachedProduct && cachedProduct.metafields && cachedProduct.metafields.length > 0) {
