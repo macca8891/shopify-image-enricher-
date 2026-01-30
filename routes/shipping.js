@@ -1125,6 +1125,10 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             );
             const buckyDropTime = Date.now() - buckyDropStartTime;
             logger.info(`⏱️ BuckyDrop API call took: ${buckyDropTime}ms`);
+            
+            // Log timing breakdown
+            const timeBeforeProcessing = Date.now() - startTime;
+            logger.info(`⏱️ Timing breakdown: Shopify APIs=${shopifyApiTime}ms, BuckyDrop=${buckyDropTime}ms, Before processing=${timeBeforeProcessing}ms`);
 
             // Collect all valid routes
             let routesToProcess = [];
@@ -1657,7 +1661,9 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         // Log AFTER sending (async, won't delay response)
         setImmediate(() => {
             const totalTime = Date.now() - startTime;
-            logger.info(`✅ Response sent: ${jsonResponse.rates.length} rates in ${totalTime}ms (cached for future requests)`);
+            const processingTime = totalTime - shopifyApiTime - buckyDropTime;
+            logger.info(`✅ Response sent: ${jsonResponse.rates.length} rates in ${totalTime}ms`);
+            logger.info(`⏱️ Full timing: Shopify=${shopifyApiTime}ms, BuckyDrop=${buckyDropTime}ms, Processing=${processingTime}ms, Total=${totalTime}ms`);
         });
         
         return;
