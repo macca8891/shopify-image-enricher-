@@ -15,7 +15,9 @@ const router = express.Router();
 // Store last request details for debugging (keep last 10 requests)
 let lastRequestDetails = null;
 let recentRequests = []; // Store last 10 requests
+let detailedProcessingLogs = []; // Store detailed processing logs
 const MAX_RECENT_REQUESTS = 10;
+const MAX_PROCESSING_LOGS = 5;
 
 // Stub endpoints to prevent server crash - these need to be implemented
 router.post('/calculate', async (req, res) => {
@@ -1847,12 +1849,20 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                     max_delivery_date: maxDate.toISOString().split('T')[0],
                 });
                 
+                console.log(`  ✅ Added individual shipping option: ${totalIndividualPrice.toFixed(2)} CNY (${individualPriceCents} cents) - ${avgMinDays}-${avgMaxDays} days`);
+                console.log(`  💰 Comparison: Consolidated=${consolidatedCheapestPrice.toFixed(2)} CNY vs Individual=${totalIndividualPrice.toFixed(2)} CNY\n`);
+                
                 logger.info(`  ✅ Added individual shipping option: ${totalIndividualPrice.toFixed(2)} CNY (${individualPriceCents} cents) - ${avgMinDays}-${avgMaxDays} days`);
                 logger.info(`  💰 Comparison: Consolidated=${consolidatedCheapestPrice.toFixed(2)} CNY vs Individual=${totalIndividualPrice.toFixed(2)} CNY`);
             } else {
+                console.log(`  ⚠️ Individual shipping option NOT added: individualRouteCount=${individualRouteCount}\n`);
                 logger.warn(`  ⚠️ Individual shipping option NOT added: individualRouteCount=${individualRouteCount}`);
             }
         } else {
+            console.log(`  ⚠️ Individual shipping option NOT added:`);
+            console.log(`     validIndividual exists: ${!!validIndividual}`);
+            console.log(`     validIndividual length: ${validIndividual?.length || 0}`);
+            console.log(`     totalIndividualPrice: ${totalIndividualPrice}\n`);
             logger.warn(`  ⚠️ Individual shipping option NOT added: validIndividual=${!!validIndividual}, length=${validIndividual?.length || 0}, totalIndividualPrice=${totalIndividualPrice}`);
         }
 
@@ -2253,12 +2263,46 @@ router.get('/list-carrier-services', async (req, res) => {
  * Get details of the last carrier service request (for debugging)
  */
 router.get('/last-request-details', async (req, res) => {
-    res.json({
+    const response = {
         success: true,
         lastRequest: lastRequestDetails || null,
         recentRequests: recentRequests.slice(-5), // Last 5 requests
         totalRequests: recentRequests.length,
-        message: lastRequestDetails ? 'Last request details found' : 'No requests yet. Make a checkout request to see details here.'
+        message: lastRequestDetails ? 'Last request details found' : 'No requests yet. Make a checkout request to see details here.',
+        debug: {
+            timestamp: new Date().toISOString(),
+            memoryUsage: process.memoryUsage(),
+            nodeEnv: process.env.NODE_ENV
+        }
+    };
+    
+    // Add processing logs if available
+    if (lastRequestDetails && lastRequestDetails.processingLogs) {
+        response.processingLogs = lastRequestDetails.processingLogs;
+    }
+    
+    res.json(response);
+});
+
+/**
+ * GET /api/shipping/debug-full
+ * Comprehensive debug endpoint showing ALL processing data
+ */
+router.get('/debug-full', async (req, res) => {
+    res.json({
+        success: true,
+        timestamp: new Date().toISOString(),
+        lastRequest: lastRequestDetails,
+        recentRequests: recentRequests,
+        processingLogs: detailedProcessingLogs.slice(-MAX_PROCESSING_LOGS),
+        systemInfo: {
+            nodeVersion: process.version,
+            platform: process.platform,
+            memoryUsage: process.memoryUsage(),
+            uptime: process.uptime(),
+            nodeEnv: process.env.NODE_ENV
+        },
+        message: 'Full debug information. Check Railway logs for real-time processing details.'
     });
 });
 
