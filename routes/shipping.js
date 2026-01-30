@@ -1107,7 +1107,6 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             if (process.env.NODE_ENV !== 'production') {
                 logger.info(`  Processing ${routesToProcess.length} routes from BuckyDrop`);
             }
-            const processingStartTime = Date.now();
             for (const route of routesToProcess) {
                 let routeName = route.serviceName || route.service_name || route.channelName || route.channel_name || 'BuckyDrop Shipping';
                 
