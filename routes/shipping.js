@@ -929,6 +929,7 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         logger.info(`📦 Combining ${processedItems.length} items into one shipment calculation`);
         
         // OPTIMIZATION: Parallelize all Shopify API calls instead of sequential
+        const shopifyApiStartTime = Date.now();
         const productDataPromises = processedItems.map(async (item) => {
             const productId = item.product_id;
             const quantity = item.quantity || 1;
@@ -988,6 +989,8 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         
         // Wait for all product data to be fetched in parallel
         const productDataResults = await Promise.all(productDataPromises);
+        const shopifyApiTime = Date.now() - shopifyApiStartTime;
+        logger.info(`⏱️ Shopify API calls took: ${shopifyApiTime}ms (${processedItems.length} products)`);
         
         // Process results
         for (let i = 0; i < productDataResults.length; i++) {
@@ -1061,11 +1064,13 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         logger.info(`📦 Product info: isClothing=${productInfo.isClothing}, isBattery=${productInfo.isBattery}`);
 
         // STEP 2: Check cache first
+        const cacheCheckStartTime = Date.now();
         const cacheKey = generateCacheKey(destination, processedItems, combinedWeight, combinedDimensions);
         const cachedRates = getCachedRates(cacheKey);
+        const cacheCheckTime = Date.now() - cacheCheckStartTime;
         
         if (cachedRates) {
-            logger.info(`⚡ Cache HIT! Returning cached rates (key: ${cacheKey.substring(0, 8)}...)`);
+            logger.info(`⚡ Cache HIT! Returning cached rates (key: ${cacheKey.substring(0, 8)}...) - cache check: ${cacheCheckTime}ms`);
             const responseTime = Date.now() - startTime;
             const jsonResponse = { rates: cachedRates };
             const compactJson = JSON.stringify(jsonResponse);
@@ -1087,7 +1092,7 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             return;
         }
         
-        logger.info(`💾 Cache MISS - calculating rates (key: ${cacheKey.substring(0, 8)}...)`);
+        logger.info(`💾 Cache MISS - calculating rates (key: ${cacheKey.substring(0, 8)}...) - cache check: ${cacheCheckTime}ms`);
 
         // STEP 3: Calculate shipping ONCE for the combined cart
         const combinedProduct = {
