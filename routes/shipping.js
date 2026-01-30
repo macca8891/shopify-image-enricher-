@@ -1068,7 +1068,8 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                 weightKg: ((item.grams || 0) / 1000 * (item.quantity || 1)).toFixed(3)
             })),
             isClothing: productInfo.isClothing,
-            isBattery: productInfo.isBattery
+            isBattery: productInfo.isBattery,
+            cached: false
         };
         
         // Log shipment details prominently to console (always visible)
@@ -1096,6 +1097,30 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         const cacheCheckTime = Date.now() - cacheCheckStartTime;
         
         if (cachedRates) {
+            // Store request details even for cache hits
+            lastRequestDetails = {
+                timestamp: new Date().toISOString(),
+                shop: shopDomain,
+                destination: destination.country_code || destination.country,
+                weight: combinedWeight.toFixed(3),
+                dimensions: {
+                    height: combinedDimensions.height,
+                    length: combinedDimensions.length,
+                    width: combinedDimensions.width
+                },
+                quantity: totalQuantity,
+                itemsCount: processedItems.length,
+                items: processedItems.map(item => ({
+                    name: item.name,
+                    quantity: item.quantity,
+                    grams: item.grams,
+                    weightKg: ((item.grams || 0) / 1000 * (item.quantity || 1)).toFixed(3)
+                })),
+                isClothing: productInfo.isClothing,
+                isBattery: productInfo.isBattery,
+                cached: true
+            };
+            
             logger.info(`⚡ Cache HIT! Returning cached rates (key: ${cacheKey.substring(0, 8)}...) - cache check: ${cacheCheckTime}ms`);
             const responseTime = Date.now() - startTime;
             const jsonResponse = { rates: cachedRates };
