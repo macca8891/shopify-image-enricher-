@@ -1803,14 +1803,17 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         }
         
         // Add INDIVIDUAL shipping option (each product shipped separately)
-        if (validIndividual.length > 0 && totalIndividualPrice > 0) {
+        // Only show if we have valid individual calculations and the price is reasonable
+        logger.info(`🔍 Individual shipping check: validIndividual=${!!validIndividual}, length=${validIndividual?.length || 0}, totalIndividualPrice=${totalIndividualPrice}`);
+        
+        if (validIndividual && validIndividual.length > 0 && totalIndividualPrice > 0 && totalIndividualPrice < 999999) {
             // Find average delivery time from individual routes
             let avgMinDays = 0;
             let avgMaxDays = 0;
             let individualRouteCount = 0;
             
             for (const calc of validIndividual) {
-                if (calc.result && calc.result.allRoutes && calc.result.allRoutes.length > 0) {
+                if (calc && calc.result && calc.result.allRoutes && calc.result.allRoutes.length > 0) {
                     const cheapestRoute = calc.result.allRoutes
                         .filter(r => r.available !== false && r.totalPrice)
                         .sort((a, b) => (a.totalPrice || 999999) - (b.totalPrice || 999999))[0];
@@ -1822,6 +1825,8 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                     }
                 }
             }
+            
+            logger.info(`🔍 Individual route count: ${individualRouteCount} (out of ${validIndividual.length} products)`);
             
             if (individualRouteCount > 0) {
                 avgMinDays = Math.ceil(avgMinDays / individualRouteCount);
@@ -1842,9 +1847,13 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                     max_delivery_date: maxDate.toISOString().split('T')[0],
                 });
                 
-                logger.info(`  ✓ Added individual shipping option: ${totalIndividualPrice.toFixed(2)} CNY (${individualPriceCents} cents) - ${avgMinDays}-${avgMaxDays} days`);
+                logger.info(`  ✅ Added individual shipping option: ${totalIndividualPrice.toFixed(2)} CNY (${individualPriceCents} cents) - ${avgMinDays}-${avgMaxDays} days`);
                 logger.info(`  💰 Comparison: Consolidated=${consolidatedCheapestPrice.toFixed(2)} CNY vs Individual=${totalIndividualPrice.toFixed(2)} CNY`);
+            } else {
+                logger.warn(`  ⚠️ Individual shipping option NOT added: individualRouteCount=${individualRouteCount}`);
             }
+        } else {
+            logger.warn(`  ⚠️ Individual shipping option NOT added: validIndividual=${!!validIndividual}, length=${validIndividual?.length || 0}, totalIndividualPrice=${totalIndividualPrice}`);
         }
 
         // If no rates found, return empty JSON response
