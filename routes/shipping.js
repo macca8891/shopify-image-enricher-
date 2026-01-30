@@ -1082,12 +1082,15 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         try {
             // Calculate shipping for the ENTIRE cart as one shipment
             // Pass total quantity so BuckyDrop can calculate correctly for multiple items
+            const buckyDropStartTime = Date.now();
             const result = await shippingService.calculateProductShipping(
                 combinedProduct,
                 combinedMetafields,
                 targetCountry,
                 totalQuantity // Pass total quantity to BuckyDrop API
             );
+            const buckyDropTime = Date.now() - buckyDropStartTime;
+            logger.info(`⏱️ BuckyDrop API call took: ${buckyDropTime}ms`);
 
             // Collect all valid routes
             let routesToProcess = [];
@@ -1100,23 +1103,16 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                 if (result.expressOption) routesToProcess.push(result.expressOption);
             }
             
-            logger.info(`  Processing ${routesToProcess.length} routes from BuckyDrop`);
-            logger.info(`  📋 ALL ROUTES FROM BUCKYDROP:`);
-            routesToProcess.forEach((r, idx) => {
-                const name = r.serviceName || r.service_name || r.channelName || 'Unknown';
-                const price = r.totalPrice || r.total_price || 0;
-                const minDays = r.minTimeInTransit || r.min_time_in_transit || 'N/A';
-                const maxDays = r.maxTimeInTransit || r.max_time_in_transit || 'N/A';
-                const available = r.available !== false;
-                logger.info(`    Route ${idx + 1}: ${name} - ${price} CNY - ${minDays}-${maxDays} days - available=${available}`);
-            });
+            // Reduced logging - only log count in production
+            if (process.env.NODE_ENV !== 'production') {
+                logger.info(`  Processing ${routesToProcess.length} routes from BuckyDrop`);
+            }
+            const processingStartTime = Date.now();
             for (const route of routesToProcess) {
                 let routeName = route.serviceName || route.service_name || route.channelName || route.channel_name || 'BuckyDrop Shipping';
-                logger.info(`  🔍 Processing route: ${routeName} (available=${route.available}, totalPrice=${route.totalPrice || route.total_price || 'none'})`);
                 
                 // Only include routes that are available
                 if (route.available === false || !route.totalPrice) {
-                    logger.warn(`    ⚠️ Skipped route: ${routeName} - available=${route.available}, totalPrice=${route.totalPrice || route.total_price || 'none'}`);
                     continue;
                 }
                 
@@ -1126,8 +1122,7 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                 const routePriceRMB = parseFloat(route.totalPrice || route.total_price || 0);
                 const routePriceFinal = routePriceRMB; // Keep as RMB - Shopify handles conversion
                 
-                // Log price in RMB
-                logger.info(`    💰 Price: ${routePriceRMB.toFixed(2)} CNY (Shopify will convert to ${checkoutCurrency} at checkout)`);
+                // Reduced logging for performance
                     
                     // Get delivery days from transit time
                     let minDays = route.minTimeInTransit || route.min_time_in_transit || 5;
@@ -1624,8 +1619,8 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         
         // Log AFTER sending (async, won't delay response)
         setImmediate(() => {
-            logger.info(`✅ JSON Response sent: ${jsonResponse.rates.length} rates, ${responseTime}ms`);
-            logger.info(`📤 JSON sent: ${JSON.stringify(jsonResponse).substring(0, 200)}...`);
+            const totalTime = Date.now() - startTime;
+            logger.info(`✅ Response sent: ${jsonResponse.rates.length} rates in ${totalTime}ms`);
         });
         
         return;
