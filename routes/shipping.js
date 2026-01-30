@@ -2040,6 +2040,18 @@ router.get('/list-carrier-services', async (req, res) => {
 });
 
 /**
+ * GET /api/shipping/last-request-details
+ * Get details of the last carrier service request (for debugging)
+ */
+router.get('/last-request-details', async (req, res) => {
+    res.json({
+        success: true,
+        lastRequest: lastRequestDetails || null,
+        message: lastRequestDetails ? 'Last request details found' : 'No requests yet'
+    });
+});
+
+/**
  * GET /api/shipping/carrier-service-status
  * Check if carrier service is registered
  */
