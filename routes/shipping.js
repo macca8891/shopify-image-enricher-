@@ -1097,14 +1097,7 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             recentRequests.shift(); // Remove oldest
         }
         
-        // Log shipment details prominently to console (always visible)
-        console.log(`\n📦 SHIPMENT DETAILS:`);
-        console.log(`   Weight: ${combinedWeight.toFixed(3)} kg`);
-        console.log(`   Dimensions: ${combinedDimensions.height}mm (H) × ${combinedDimensions.length}mm (L) × ${combinedDimensions.width}mm (W)`);
-        console.log(`   Quantity: ${totalQuantity} items`);
-        console.log(`   Items in Cart: ${processedItems.length}`);
-        console.log(`   Clothing: ${productInfo.isClothing}, Battery: ${productInfo.isBattery}`);
-        console.log(`\n`);
+        // All logging now via logger (Railway shows these) + stored in debug endpoint
         
         logger.info(`═══════════════════════════════════════════════════════════`);
         logger.info(`📦 SHIPMENT DETAILS FOR LAST RATE CALL:`);
@@ -1870,14 +1863,9 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                 logger.info(`  ✅ Added individual shipping option: ${totalIndividualPrice.toFixed(2)} CNY (${individualPriceCents} cents) - ${avgMinDays}-${avgMaxDays} days`);
                 logger.info(`  💰 Comparison: Consolidated=${consolidatedCheapestPrice.toFixed(2)} CNY vs Individual=${totalIndividualPrice.toFixed(2)} CNY`);
             } else {
-                console.log(`  ⚠️ Individual shipping option NOT added: individualRouteCount=${individualRouteCount}\n`);
                 logger.warn(`  ⚠️ Individual shipping option NOT added: individualRouteCount=${individualRouteCount}`);
             }
         } else {
-            console.log(`  ⚠️ Individual shipping option NOT added:`);
-            console.log(`     validIndividual exists: ${!!validIndividual}`);
-            console.log(`     validIndividual length: ${validIndividual?.length || 0}`);
-            console.log(`     totalIndividualPrice: ${totalIndividualPrice}\n`);
             logger.warn(`  ⚠️ Individual shipping option NOT added: validIndividual=${!!validIndividual}, length=${validIndividual?.length || 0}, totalIndividualPrice=${totalIndividualPrice}`);
         }
 
