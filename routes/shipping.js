@@ -12,6 +12,9 @@ require('@shopify/shopify-api/adapters/node');
 
 const router = express.Router();
 
+// Store last request details for debugging
+let lastRequestDetails = null;
+
 // Stub endpoints to prevent server crash - these need to be implemented
 router.post('/calculate', async (req, res) => {
     res.status(501).json({ error: 'Endpoint not yet restored' });
@@ -1045,6 +1048,29 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             combinedWeight = 0.1 * totalQuantity; // 0.1kg per item minimum
         }
 
+        // Store last request details for debugging
+        lastRequestDetails = {
+            timestamp: new Date().toISOString(),
+            shop: shopDomain,
+            destination: destination.country_code || destination.country,
+            weight: combinedWeight.toFixed(3),
+            dimensions: {
+                height: combinedDimensions.height,
+                length: combinedDimensions.length,
+                width: combinedDimensions.width
+            },
+            quantity: totalQuantity,
+            itemsCount: processedItems.length,
+            items: processedItems.map(item => ({
+                name: item.name,
+                quantity: item.quantity,
+                grams: item.grams,
+                weightKg: ((item.grams || 0) / 1000 * (item.quantity || 1)).toFixed(3)
+            })),
+            isClothing: productInfo.isClothing,
+            isBattery: productInfo.isBattery
+        };
+        
         // Log shipment details prominently to console (always visible)
         console.log(`\n📦 SHIPMENT DETAILS:`);
         console.log(`   Weight: ${combinedWeight.toFixed(3)} kg`);
