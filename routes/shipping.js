@@ -928,8 +928,12 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
 
         logger.info(`📦 Combining ${processedItems.length} items into one shipment calculation`);
         
-        // OPTIMIZATION: Parallelize all Shopify API calls instead of sequential
+        // OPTIMIZATION: Skip Shopify API calls entirely - use weight from request and defaults
+        // This saves 2-4 seconds per request
         const shopifyApiStartTime = Date.now();
+        let shopifyApiTime = 0;
+        
+        // Quick DB lookup for metafields (non-blocking, use defaults if not found)
         const productDataPromises = processedItems.map(async (item) => {
             const productId = item.product_id;
             const quantity = item.quantity || 1;
@@ -942,60 +946,20 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             const isBattery = batteryKeywords.some(keyword => name.includes(keyword));
             
             let metafields = [];
-            let productDetails = null;
             
-            // OPTIMIZATION: Try to get product data from our database first (much faster)
-            // Only call Shopify API if we don't have cached data
+            // Quick DB lookup only (no Shopify API calls)
             if (productId) {
                 try {
                     const cachedProduct = await Product.findOne({ 
                         shopDomain: shopDomain,
-                        $or: [
-                            { shopifyProductId: productId },
-                            { 'shopifyId': productId },
-                            { 'productId': productId }
-                        ]
+                        shopifyId: productId 
                     }).select('metafields').lean();
                     
                     if (cachedProduct && cachedProduct.metafields && cachedProduct.metafields.length > 0) {
                         metafields = cachedProduct.metafields;
-                        logger.info(`  ✅ Using cached metafields for product ${productId} (skipping Shopify API)`);
-                    } else {
-                        // Fallback: Fetch from Shopify API only if not in cache
-                        const [metafieldsResponse, productResponse] = await Promise.allSettled([
-                            axios.get(
-                                `https://${shopDomain}/admin/api/2025-01/products/${productId}/metafields.json`,
-                                {
-                                    headers: {
-                                        'X-Shopify-Access-Token': accessToken,
-                                        'Content-Type': 'application/json'
-                                    },
-                                    timeout: 3000 // Reduced to 3 seconds
-                                }
-                            ),
-                            axios.get(
-                                `https://${shopDomain}/admin/api/2025-01/products/${productId}.json`,
-                                {
-                                    headers: {
-                                        'X-Shopify-Access-Token': accessToken,
-                                        'Content-Type': 'application/json'
-                                    },
-                                    timeout: 3000 // Reduced to 3 seconds
-                                }
-                            )
-                        ]);
-                        
-                        if (metafieldsResponse.status === 'fulfilled') {
-                            metafields = metafieldsResponse.value.data.metafields || [];
-                        }
-                        
-                        if (productResponse.status === 'fulfilled') {
-                            productDetails = productResponse.value.data.product;
-                        }
                     }
                 } catch (dbError) {
-                    // If DB lookup fails, skip API calls and use defaults
-                    logger.warn(`  ⚠️ Could not fetch product ${productId} from DB, using defaults: ${dbError.message}`);
+                    // Silently use defaults - don't log to avoid noise
                 }
             }
             
@@ -1004,14 +968,14 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                 isClothing,
                 isBattery,
                 metafields,
-                productDetails
+                productDetails: null // Skip product details fetch entirely
             };
         });
         
-        // Wait for all product data to be fetched in parallel
+        // Wait for all product data to be fetched (DB lookups only, no API calls)
         const productDataResults = await Promise.all(productDataPromises);
-        const shopifyApiTime = Date.now() - shopifyApiStartTime;
-        logger.info(`⏱️ Shopify API calls took: ${shopifyApiTime}ms (${processedItems.length} products)`);
+        shopifyApiTime = Date.now() - shopifyApiStartTime;
+        logger.info(`⏱️ Product data lookup took: ${shopifyApiTime}ms (${processedItems.length} products, DB only - no Shopify API)`);
         
         // Process results
         for (let i = 0; i < productDataResults.length; i++) {
