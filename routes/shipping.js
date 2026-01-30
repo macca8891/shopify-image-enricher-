@@ -1017,10 +1017,6 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                     productInfo.isBattery = true;
                 }
             }
-                } catch (metafieldError) {
-                    logger.warn(`  ⚠️ Could not fetch metafields for product ${productId}: ${metafieldError.message}`);
-                }
-            }
         }
 
         // Calculate combined dimensions for multiple items
