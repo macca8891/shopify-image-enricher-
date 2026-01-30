@@ -1060,7 +1060,36 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         logger.info(`📦 Combined shipment: ${combinedWeight.toFixed(3)}kg (${totalQuantity} items), H:${combinedDimensions.height}mm (single item), L:${combinedDimensions.length}mm W:${combinedDimensions.width}mm, count:${totalQuantity}`);
         logger.info(`📦 Product info: isClothing=${productInfo.isClothing}, isBattery=${productInfo.isBattery}`);
 
-        // STEP 2: Calculate shipping ONCE for the combined cart
+        // STEP 2: Check cache first
+        const cacheKey = generateCacheKey(destination, processedItems, combinedWeight, combinedDimensions);
+        const cachedRates = getCachedRates(cacheKey);
+        
+        if (cachedRates) {
+            logger.info(`⚡ Cache HIT! Returning cached rates (key: ${cacheKey.substring(0, 8)}...)`);
+            const responseTime = Date.now() - startTime;
+            const jsonResponse = { rates: cachedRates };
+            const compactJson = JSON.stringify(jsonResponse);
+            
+            res.status(200);
+            res.set({
+                'Content-Type': 'application/json; charset=utf-8',
+                'Content-Length': Buffer.byteLength(compactJson, 'utf8').toString(),
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0',
+                'X-Cache': 'HIT' // Header to indicate cache was used
+            });
+            res.send(compactJson);
+            
+            setImmediate(() => {
+                logger.info(`✅ Cached response sent: ${cachedRates.length} rates in ${responseTime}ms`);
+            });
+            return;
+        }
+        
+        logger.info(`💾 Cache MISS - calculating rates (key: ${cacheKey.substring(0, 8)}...)`);
+
+        // STEP 3: Calculate shipping ONCE for the combined cart
         const combinedProduct = {
             title: `Cart with ${processedItems.length} items`,
             variants: [{
