@@ -15,9 +15,24 @@ const router = express.Router();
 // Store last request details for debugging (keep last 10 requests)
 let lastRequestDetails = null;
 let recentRequests = []; // Store last 10 requests
-let detailedProcessingLogs = []; // Store detailed processing logs
+let detailedProcessingLogs = []; // Store detailed processing logs with ALL data
 const MAX_RECENT_REQUESTS = 10;
 const MAX_PROCESSING_LOGS = 5;
+
+// Helper function to add processing log entry
+function addProcessingLog(type, data) {
+    const logEntry = {
+        timestamp: new Date().toISOString(),
+        type: type,
+        data: JSON.parse(JSON.stringify(data)) // Deep clone to avoid reference issues
+    };
+    detailedProcessingLogs.push(logEntry);
+    if (detailedProcessingLogs.length > MAX_PROCESSING_LOGS) {
+        detailedProcessingLogs.shift();
+    }
+    // Also log via logger so it appears in Railway
+    logger.info(`[PROCESSING_LOG] ${type}: ${JSON.stringify(data)}`);
+}
 
 // Stub endpoints to prevent server crash - these need to be implemented
 router.post('/calculate', async (req, res) => {
@@ -2294,7 +2309,7 @@ router.get('/debug-full', async (req, res) => {
         timestamp: new Date().toISOString(),
         lastRequest: lastRequestDetails,
         recentRequests: recentRequests,
-        processingLogs: detailedProcessingLogs.slice(-MAX_PROCESSING_LOGS),
+        processingLogs: detailedProcessingLogs, // Return ALL logs, not just last 5
         systemInfo: {
             nodeVersion: process.version,
             platform: process.platform,
@@ -2302,7 +2317,7 @@ router.get('/debug-full', async (req, res) => {
             uptime: process.uptime(),
             nodeEnv: process.env.NODE_ENV
         },
-        message: 'Full debug information. Check Railway logs for real-time processing details.'
+        message: 'Full debug information. All processing data is stored here - no need to check Railway logs.'
     });
 });
 
