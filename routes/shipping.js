@@ -1045,6 +1045,15 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             combinedWeight = 0.1 * totalQuantity; // 0.1kg per item minimum
         }
 
+        // Log shipment details prominently to console (always visible)
+        console.log(`\n📦 SHIPMENT DETAILS:`);
+        console.log(`   Weight: ${combinedWeight.toFixed(3)} kg`);
+        console.log(`   Dimensions: ${combinedDimensions.height}mm (H) × ${combinedDimensions.length}mm (L) × ${combinedDimensions.width}mm (W)`);
+        console.log(`   Quantity: ${totalQuantity} items`);
+        console.log(`   Items in Cart: ${processedItems.length}`);
+        console.log(`   Clothing: ${productInfo.isClothing}, Battery: ${productInfo.isBattery}`);
+        console.log(`\n`);
+        
         logger.info(`═══════════════════════════════════════════════════════════`);
         logger.info(`📦 SHIPMENT DETAILS FOR LAST RATE CALL:`);
         logger.info(`   Weight: ${combinedWeight.toFixed(3)} kg`);
