@@ -1635,7 +1635,7 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         const jsonResponse = responseJson;
         
         // Cache the results for future requests (before sending response)
-        const cacheKey = generateCacheKey(destination, processedItems, combinedWeight, combinedDimensions);
+        // Reuse cacheKey from earlier (already calculated at line 1068)
         setCachedRates(cacheKey, jsonResponse.rates);
         
         // CRITICAL: Check if response was already sent
