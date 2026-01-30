@@ -1178,6 +1178,11 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         // Collect all valid routes
         const allAvailableRoutes = [];
         
+        // Variables for individual shipping (declare outside try block for scope)
+        let validIndividual = [];
+        let totalIndividualPrice = 0;
+        let consolidatedCheapestPrice = 0;
+        
         try {
             // OPTION 1: Calculate consolidated shipping (entire cart as one shipment)
             const consolidatedStartTime = Date.now();
@@ -1230,13 +1235,22 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                             targetCountry,
                             item.quantity || 1
                         );
+                        
+                        // Get cheapest price in CNY (BuckyDrop returns CNY)
+                        let cheapestPriceCNY = 999999;
+                        if (itemResult.allRoutes && itemResult.allRoutes.length > 0) {
+                            const cheapestRoute = itemResult.allRoutes
+                                .filter(r => r.available !== false && r.totalPrice)
+                                .sort((a, b) => (a.totalPrice || 999999) - (b.totalPrice || 999999))[0];
+                            if (cheapestRoute) {
+                                cheapestPriceCNY = parseFloat(cheapestRoute.totalPrice || cheapestRoute.total_price || 0);
+                            }
+                        }
+                        
                         return {
                             item: item,
                             result: itemResult,
-                            cheapestPrice: Math.min(
-                                itemResult.maxCheapPriceUSD || 999999,
-                                itemResult.maxExpressPriceUSD || 999999
-                            )
+                            cheapestPriceCNY: cheapestPriceCNY
                         };
                     } catch (error) {
                         logger.warn(`  ⚠️ Failed to calculate individual shipping for ${item.name}: ${error.message}`);
@@ -1249,12 +1263,19 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             logger.info(`⏱️ Individual shipping calculations took: ${individualTime}ms (${processedItems.length} products)`);
             
             // Calculate total for individual shipping
-            const validIndividual = individualCalculations.filter(c => c !== null);
-            const totalIndividualPrice = validIndividual.reduce((sum, calc) => sum + calc.cheapestPrice, 0);
-            const consolidatedCheapestPrice = Math.min(
-                consolidatedResult.maxCheapPriceUSD || 999999,
-                consolidatedResult.maxExpressPriceUSD || 999999
-            );
+            validIndividual = individualCalculations.filter(c => c !== null);
+            totalIndividualPrice = validIndividual.reduce((sum, calc) => sum + (calc.cheapestPriceCNY || 0), 0);
+            
+            // Get consolidated cheapest price in CNY
+            consolidatedCheapestPrice = 999999;
+            if (consolidatedResult.allRoutes && consolidatedResult.allRoutes.length > 0) {
+                const cheapestConsolidatedRoute = consolidatedResult.allRoutes
+                    .filter(r => r.available !== false && r.totalPrice)
+                    .sort((a, b) => (a.totalPrice || 999999) - (b.totalPrice || 999999))[0];
+                if (cheapestConsolidatedRoute) {
+                    consolidatedCheapestPrice = parseFloat(cheapestConsolidatedRoute.totalPrice || cheapestConsolidatedRoute.total_price || 0);
+                }
+            }
             
             logger.info(`💰 Price Comparison:`);
             logger.info(`   Consolidated: ${consolidatedCheapestPrice.toFixed(2)} CNY`);
