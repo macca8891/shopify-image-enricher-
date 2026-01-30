@@ -1625,6 +1625,10 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         // CRITICAL: Build JSON response (Shopify prefers JSON over XML)
         const jsonResponse = responseJson;
         
+        // Cache the results for future requests (before sending response)
+        const cacheKey = generateCacheKey(destination, processedItems, combinedWeight, combinedDimensions);
+        setCachedRates(cacheKey, jsonResponse.rates);
+        
         // CRITICAL: Check if response was already sent
         if (res.headersSent) {
             logger.error('❌ Response already sent! Cannot send again.');
@@ -1648,7 +1652,7 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         // Log AFTER sending (async, won't delay response)
         setImmediate(() => {
             const totalTime = Date.now() - startTime;
-            logger.info(`✅ Response sent: ${jsonResponse.rates.length} rates in ${totalTime}ms`);
+            logger.info(`✅ Response sent: ${jsonResponse.rates.length} rates in ${totalTime}ms (cached for future requests)`);
         });
         
         return;
