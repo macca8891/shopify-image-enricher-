@@ -755,14 +755,8 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
 }, async (req, res) => {
     
     const startTime = Date.now();
-    logger.info(`\n\n🚨🚨🚨 CARRIER SERVICE REQUEST RECEIVED 🚨🚨🚨`);
-    logger.info(`  Timestamp: ${new Date().toISOString()}`);
-    logger.info(`  Method: ${req.method}`);
-    logger.info(`  URL: ${req.url}`);
-    logger.info(`  Query: ${JSON.stringify(req.query)}`);
-        logger.info(`  Body type: ${typeof req.body}`);
-        logger.info(`  Body preview: ${JSON.stringify(req.body).substring(0, 500)}`);
-        logger.info(`  Headers: ${JSON.stringify(req.headers).substring(0, 500)}`);
+    // Reduced logging for performance - only log essential info
+    logger.info(`📦 Carrier service request: ${req.query.shop || 'unknown'} → ${req.body.rate?.destination?.country_code || 'unknown'}`);
     try {
         const shopDomain = req.query.shop || req.headers['x-shopify-shop-domain'] || req.headers['x-shopify-shop_domain'];
         
@@ -934,69 +928,95 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
 
         logger.info(`📦 Combining ${processedItems.length} items into one shipment calculation`);
         
-        // Collect all product data first
-        for (const item of processedItems) {
+        // OPTIMIZATION: Parallelize all Shopify API calls instead of sequential
+        const productDataPromises = processedItems.map(async (item) => {
             const productId = item.product_id;
             const quantity = item.quantity || 1;
             const weightGrams = item.grams || 0;
-            const weightKg = (weightGrams / 1000) * quantity; // Total weight for this item (weight × quantity)
+            const weightKg = (weightGrams / 1000) * quantity;
             
-            combinedWeight += weightKg;
-            
-            logger.info(`  Item: ${item.name || productId} - ${quantity} × ${weightGrams}g = ${weightKg}kg`);
-
-            // Check for clothing/battery keywords
+            // Check for clothing/battery keywords in item name
             const name = (item.name || '').toLowerCase();
-            if (clothingKeywords.some(keyword => name.includes(keyword))) {
-                productInfo.isClothing = true;
-            }
-            if (batteryKeywords.some(keyword => name.includes(keyword))) {
-                productInfo.isBattery = true;
-            }
-
-            // Fetch metafields for dimensions
+            const isClothing = clothingKeywords.some(keyword => name.includes(keyword));
+            const isBattery = batteryKeywords.some(keyword => name.includes(keyword));
+            
+            let metafields = [];
+            let productDetails = null;
+            
+            // Fetch metafields and product details in parallel for this product
             if (productId) {
-                try {
-                    const metafieldsResponse = await axios.get(
+                const [metafieldsResponse, productResponse] = await Promise.allSettled([
+                    axios.get(
                         `https://${shopDomain}/admin/api/2025-01/products/${productId}/metafields.json`,
                         {
                             headers: {
                                 'X-Shopify-Access-Token': accessToken,
                                 'Content-Type': 'application/json'
-                            }
+                            },
+                            timeout: 5000 // 5 second timeout per request
                         }
-                    );
-                    const metafields = metafieldsResponse.data.metafields || [];
-                    allMetafields.push(...metafields);
-                    
-                    // Check product details for clothing/battery
-                    try {
-                        const productResponse = await axios.get(
-                            `https://${shopDomain}/admin/api/2025-01/products/${productId}.json`,
-                            {
-                                headers: {
-                                    'X-Shopify-Access-Token': accessToken,
-                                    'Content-Type': 'application/json'
-                                }
-                            }
-                        );
-                        const product = productResponse.data.product;
-                        const productText = [
-                            product.title || '',
-                            product.product_type || '',
-                            product.tags || '',
-                            product.vendor || ''
-                        ].join(' ').toLowerCase();
-                        
-                        if (clothingKeywords.some(keyword => productText.includes(keyword))) {
-                            productInfo.isClothing = true;
+                    ),
+                    axios.get(
+                        `https://${shopDomain}/admin/api/2025-01/products/${productId}.json`,
+                        {
+                            headers: {
+                                'X-Shopify-Access-Token': accessToken,
+                                'Content-Type': 'application/json'
+                            },
+                            timeout: 5000 // 5 second timeout per request
                         }
-                        if (batteryKeywords.some(keyword => productText.includes(keyword))) {
-                            productInfo.isBattery = true;
-                        }
-                    } catch (err) {
-                        // Ignore errors
-                    }
+                    )
+                ]);
+                
+                if (metafieldsResponse.status === 'fulfilled') {
+                    metafields = metafieldsResponse.value.data.metafields || [];
+                }
+                
+                if (productResponse.status === 'fulfilled') {
+                    productDetails = productResponse.value.data.product;
+                }
+            }
+            
+            return {
+                weightKg,
+                isClothing,
+                isBattery,
+                metafields,
+                productDetails
+            };
+        });
+        
+        // Wait for all product data to be fetched in parallel
+        const productDataResults = await Promise.all(productDataPromises);
+        
+        // Process results
+        for (let i = 0; i < productDataResults.length; i++) {
+            const result = productDataResults[i];
+            const item = processedItems[i];
+            
+            combinedWeight += result.weightKg;
+            
+            if (result.isClothing) productInfo.isClothing = true;
+            if (result.isBattery) productInfo.isBattery = true;
+            
+            allMetafields.push(...result.metafields);
+            
+            // Check product details for clothing/battery keywords
+            if (result.productDetails) {
+                const productText = [
+                    result.productDetails.title || '',
+                    result.productDetails.product_type || '',
+                    result.productDetails.tags || '',
+                    result.productDetails.vendor || ''
+                ].join(' ').toLowerCase();
+                
+                if (clothingKeywords.some(keyword => productText.includes(keyword))) {
+                    productInfo.isClothing = true;
+                }
+                if (batteryKeywords.some(keyword => productText.includes(keyword))) {
+                    productInfo.isBattery = true;
+                }
+            }
                 } catch (metafieldError) {
                     logger.warn(`  ⚠️ Could not fetch metafields for product ${productId}: ${metafieldError.message}`);
                 }

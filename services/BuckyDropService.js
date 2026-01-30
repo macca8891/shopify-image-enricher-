@@ -79,41 +79,24 @@ class BuckyDropService {
         'Content-Type': 'application/json'
       },
       data: jsonParams, // Send as JSON string (NOT including appCode in body)
-      timeout: 30000 // 30 second timeout
+      timeout: 10000 // 10 second timeout (reduced from 30s for faster failures)
     };
 
-    // EXTENSIVE DEBUG LOGGING
-    logger.info(`═══════════════════════════════════════════════════════════`);
-    logger.info(`🔍 BUCKYDROP API REQUEST DEBUG`);
-    logger.info(`═══════════════════════════════════════════════════════════`);
-    logger.info(`📋 Configuration:`);
-    logger.info(`   appCode (original, for signature): ${this.appCodeOriginal}`);
-    logger.info(`   appCode (with =, for query): ${this.appCode}`);
-    logger.info(`   appSecret: ${this.appSecret.substring(0, 10)}...${this.appSecret.substring(this.appSecret.length - 4)}`);
-    logger.info(`   domain: ${this.domain}`);
-    logger.info(`   apiPath: ${this.apiPath}`);
-    logger.info(`📦 Request Body (wrapped):`);
-    logger.info(`   ${JSON.stringify(wrapper, null, 2)}`);
-    logger.info(`📝 JSON String (for signature):`);
-    logger.info(`   ${jsonParams}`);
-    logger.info(`   (Note: appCode is NOT in body, only in query string)`);
-    logger.info(`🔐 Signature Calculation:`);
-    logger.info(`   String to sign: ${this.appCodeOriginal} + ${jsonParams.substring(0, 100)}... + ${timestamp} + ${this.appSecret.substring(0, 10)}...`);
-    logger.info(`   (Using original appCode without = for signature)`);
-    logger.info(`   Timestamp: ${timestamp}`);
-    logger.info(`   MD5 Signature: ${sign}`);
-    logger.info(`🌐 Full Request URL:`);
-    logger.info(`   ${finalUrl}`);
-    logger.info(`📤 Request Headers:`);
-    logger.info(`   Content-Type: application/json`);
-    logger.info(`═══════════════════════════════════════════════════════════`);
+    // Reduced logging for performance (only log in development or on errors)
+    if (process.env.NODE_ENV !== 'production') {
+      logger.info(`🔍 BUCKYDROP API REQUEST`);
+      logger.info(`   URL: ${finalUrl}`);
+      logger.info(`   Timestamp: ${timestamp}`);
+    }
 
     try {
       logger.info(`🚀 Sending request to BuckyDrop API...`);
       const response = await axios(options);
       
-      logger.info(`✅ Response received: HTTP ${response.status}`);
-      logger.info(`📥 Response data: ${JSON.stringify(response.data, null, 2)}`);
+      if (process.env.NODE_ENV !== 'production') {
+        logger.info(`✅ Response received: HTTP ${response.status}`);
+        logger.info(`📥 Records: ${response.data?.data?.records?.length || 0}`);
+      }
       
       if (response.status !== 200) {
         throw new Error(`HTTP Code ${response.status}: ${response.data?.info || 'Server Error'}`);
