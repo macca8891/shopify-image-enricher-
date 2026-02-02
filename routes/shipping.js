@@ -16,6 +16,22 @@ const router = express.Router();
 let lastRequestDetails = null;
 let recentRequests = []; // Store last 10 requests
 const MAX_RECENT_REQUESTS = 10;
+let detailedProcessingLogs = []; // Store processing logs for debug endpoint
+
+function addProcessingLog(message, data = null) {
+    const logEntry = {
+        timestamp: new Date().toISOString(),
+        message: message,
+        data: data || undefined
+    };
+    detailedProcessingLogs.push(logEntry);
+    // Keep only last 500 logs (increased for detailed debugging)
+    if (detailedProcessingLogs.length > 500) {
+        detailedProcessingLogs.shift();
+    }
+    // Also log to console for immediate visibility
+    console.log(`[PROCESSING LOG] ${logEntry.timestamp} - ${message}${data ? ' | Data: ' + JSON.stringify(data).substring(0, 200) : ''}`);
+}
 
 // Stub endpoints to prevent server crash - these need to be implemented
 router.post('/calculate', async (req, res) => {
@@ -756,30 +772,62 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
     // Disable compression for this response
     res.set('Content-Encoding', 'identity');
     res.set('ngrok-skip-browser-warning', 'true');
+    console.log('🔵 MIDDLEWARE: Request received at /carrier-service');
+    console.log('🔵 MIDDLEWARE: Method:', req.method);
+    console.log('🔵 MIDDLEWARE: URL:', req.url);
     next();
 }, async (req, res) => {
     
     const startTime = Date.now();
-    // Reduced logging for performance - only log essential info
+    console.log('🚨🚨🚨 CARRIER SERVICE REQUEST RECEIVED 🚨🚨🚨');
+    console.log(`Shop: ${req.query.shop || 'unknown'}`);
+    console.log(`Destination: ${req.body.rate?.destination?.country_code || req.body.rate?.destination?.country || 'unknown'}`);
+    console.log(`Body keys: ${Object.keys(req.body).join(', ')}`);
+    console.log(`🔍 ABOUT TO ENTER TRY BLOCK`);
+    addProcessingLog(`🚨 CARRIER SERVICE REQUEST RECEIVED`);
+    addProcessingLog(`   Shop: ${req.query.shop || 'unknown'}`);
+    addProcessingLog(`   Destination: ${req.body.rate?.destination?.country_code || req.body.rate?.destination?.country || 'unknown'}`);
+    addProcessingLog(`🔍 ABOUT TO ENTER TRY BLOCK`);
     logger.info(`📦 Carrier service request: ${req.query.shop || 'unknown'} → ${req.body.rate?.destination?.country_code || 'unknown'}`);
     try {
+        console.log(`✅ ENTERED TRY BLOCK`);
+        addProcessingLog(`✅ ENTERED TRY BLOCK`);
         const shopDomain = req.query.shop || req.headers['x-shopify-shop-domain'] || req.headers['x-shopify-shop_domain'];
+        addProcessingLog(`🔍 Shop domain check: ${shopDomain || 'NOT FOUND'}`);
+        addProcessingLog(`   Query.shop: ${req.query.shop || 'undefined'}`);
+        addProcessingLog(`   Header x-shopify-shop-domain: ${req.headers['x-shopify-shop-domain'] || 'undefined'}`);
         
         if (!shopDomain) {
+            addProcessingLog(`❌ ERROR: No shop domain found - returning 400`);
             logger.error('Carrier service called without shop domain');
             logger.error(`  Query: ${JSON.stringify(req.query)}`);
             logger.error(`  Headers keys: ${Object.keys(req.headers).join(', ')}`);
             logger.error(`  X-Shopify-Shop-Domain header: ${req.headers['x-shopify-shop-domain']}`);
             return res.status(400).json({ error: 'Shop domain required' });
         }
+        
+        addProcessingLog(`✅ Shop domain found: ${shopDomain}`);
 
+        addProcessingLog(`✅ Shop domain: ${shopDomain}`);
         logger.info(`📦 Carrier service request from shop: ${shopDomain}`);
         logger.info(`📥 Full JSON body: ${JSON.stringify(req.body, null, 2)}`);
+        addProcessingLog(`📥 Parsing request body...`, {
+            bodyKeys: Object.keys(req.body),
+            hasRate: !!req.body.rate,
+            rateKeys: req.body.rate ? Object.keys(req.body.rate) : null
+        });
         
         // Parse JSON request from Shopify (format: 'json')
         // Shopify sends: { rate: { origin: {...}, destination: {...}, items: {...}, currency: "AUD" } }
         const rateData = req.body.rate || req.body;
         const destination = rateData.destination || {};
+        
+        addProcessingLog(`🌍 Destination parsed`, {
+            country: destination.country_code || destination.country || 'N/A',
+            province: destination.province || 'N/A',
+            postalCode: destination.postal_code || 'N/A',
+            city: destination.city || 'N/A'
+        });
         
         // Get currency from Shopify request
         // Shopify sometimes sends USD even when checkout is in GBP, so detect from destination country
@@ -791,11 +839,18 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             // Shopify sent USD but destination is UK - use GBP
             checkoutCurrency = 'GBP';
             logger.info(`  ⚠️ Shopify sent USD but destination is GB - overriding to GBP`);
+            addProcessingLog(`⚠️ Currency override: USD → GBP (destination: GB)`);
         } else if (destCountry === 'GB' && !checkoutCurrency) {
             checkoutCurrency = 'GBP';
+            addProcessingLog(`ℹ️ Currency set to GBP (destination: GB, no currency in request)`);
         }
         
         logger.info(`  Checkout currency: ${checkoutCurrency} (from request: ${rateData.currency || 'none'}, destination: ${destCountry})`);
+        addProcessingLog(`💰 Currency determined: ${checkoutCurrency}`, {
+            fromRequest: rateData.currency || 'none',
+            destination: destCountry,
+            finalCurrency: checkoutCurrency
+        });
         
         // Items in JSON format - can be array or object with item property
         let items = rateData.items || null;
@@ -803,6 +858,13 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         logger.info(`Rate data keys: ${Object.keys(rateData)}`);
         logger.info(`Items type: ${items ? typeof items : 'null'}`);
         logger.info(`Items: ${items ? JSON.stringify(items).substring(0, 2000) : 'null'}`);
+        
+        addProcessingLog(`📦 Items structure`, {
+            itemsType: items ? typeof items : 'null',
+            isArray: Array.isArray(items),
+            hasItemProperty: items && typeof items === 'object' ? !!items.item : false,
+            itemsCount: Array.isArray(items) ? items.length : (items && items.item ? (Array.isArray(items.item) ? items.item.length : 1) : 0)
+        });
         
         // Handle JSON items format
         let itemArray = [];
@@ -860,11 +922,27 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         }
         
         logger.info(`Processed items count: ${processedItems.length}`);
+        addProcessingLog(`📦 Processed ${processedItems.length} items from cart`, {
+            items: processedItems.map(item => ({
+                name: item.name,
+                productId: item.product_id,
+                variantId: item.variant_id,
+                quantity: item.quantity,
+                grams: item.grams,
+                weightKg: ((item.grams || 0) / 1000 * (item.quantity || 1)).toFixed(3)
+            }))
+        });
         
         // Use processed items
         itemArray = processedItems;
 
         logger.info(`  Destination: ${destination.country || 'N/A'}, ${destination.postal_code || 'N/A'}`);
+        addProcessingLog(`🌍 Destination: ${destination.country || 'N/A'}`, {
+            country: destination.country_code || destination.country || 'N/A',
+            province: destination.province || 'N/A',
+            postalCode: destination.postal_code || 'N/A',
+            city: destination.city || 'N/A'
+        });
         logger.info(`  Items in cart: ${itemArray.length}`);
 
         // Get shop data (for product data lookup)
@@ -938,8 +1016,13 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         const shopifyApiStartTime = Date.now();
         let shopifyApiTime = 0;
         
+        addProcessingLog(`🔍 Starting product data lookup`, {
+            itemsCount: processedItems.length,
+            shopDomain: shopDomain
+        });
+        
         // Quick DB lookup for metafields (non-blocking, use defaults if not found)
-        const productDataPromises = processedItems.map(async (item) => {
+        const productDataPromises = processedItems.map(async (item, index) => {
             const productId = item.product_id;
             const quantity = item.quantity || 1;
             const weightGrams = item.grams || 0;
@@ -951,6 +1034,7 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             const isBattery = batteryKeywords.some(keyword => name.includes(keyword));
             
             let metafields = [];
+            let dbFound = false;
             
             // Quick DB lookup only (no Shopify API calls)
             if (productId) {
@@ -962,11 +1046,115 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                     
                     if (cachedProduct && cachedProduct.metafields && cachedProduct.metafields.length > 0) {
                         metafields = cachedProduct.metafields;
+                        dbFound = true;
+                        logger.info(`  ✅ Found ${metafields.length} metafields in DB for ${item.name} (productId: ${productId})`);
+                        logger.info(`     Metafield keys: ${metafields.map(m => `${m.namespace || 'default'}.${m.key}`).join(', ')}`);
+                    } else {
+                        logger.info(`  ⚠️ No metafields in DB for ${item.name} (productId: ${productId}) - fetching from Shopify API...`);
+                        
+                        // FALLBACK: Fetch metafields from Shopify API if not in database
+                        // This is critical for shipping calculations - we need accurate dimensions
+                        try {
+                            const shopData = await Shop.findOne({ domain: shopDomain });
+                            if (shopData && shopData.accessToken) {
+                                const graphqlQuery = `
+                                    query getProductMetafields($id: ID!) {
+                                        product(id: $id) {
+                                            id
+                                            metafields(first: 50) {
+                                                edges {
+                                                    node {
+                                                        id
+                                                        namespace
+                                                        key
+                                                        value
+                                                        type
+                                                        description
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                `;
+                                
+                                // Convert productId to GraphQL ID format
+                                const graphqlProductId = productId.startsWith('gid://') ? productId : `gid://shopify/Product/${productId}`;
+                                
+                                const response = await fetch(`https://${shopDomain}/admin/api/2024-01/graphql.json`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-Shopify-Access-Token': shopData.accessToken
+                                    },
+                                    body: JSON.stringify({
+                                        query: graphqlQuery,
+                                        variables: { id: graphqlProductId }
+                                    })
+                                });
+                                
+                                if (response.ok) {
+                                    const result = await response.json();
+                                    if (result.data && result.data.product && result.data.product.metafields) {
+                                        const apiMetafields = result.data.product.metafields.edges.map(edge => ({
+                                            id: edge.node.id,
+                                            namespace: edge.node.namespace || '',
+                                            key: edge.node.key || '',
+                                            value: String(edge.node.value || ''),
+                                            type: edge.node.type || '',
+                                            description: edge.node.description || ''
+                                        }));
+                                        
+                                        if (apiMetafields.length > 0) {
+                                            metafields = apiMetafields;
+                                            logger.info(`  ✅ Fetched ${metafields.length} metafields from Shopify API for ${item.name}`);
+                                            logger.info(`     Metafield keys: ${metafields.map(m => `${m.namespace || 'default'}.${m.key}`).join(', ')}`);
+                                            
+                                            // Optionally save to database for future use (non-blocking)
+                                            if (cachedProduct) {
+                                                Product.findOneAndUpdate(
+                                                    { _id: cachedProduct._id },
+                                                    { $set: { metafields: apiMetafields } },
+                                                    { new: true }
+                                                ).catch(err => logger.warn(`  ⚠️ Could not save metafields to DB: ${err.message}`));
+                                            }
+                                        } else {
+                                            logger.warn(`  ⚠️ Shopify API returned no metafields for ${item.name}`);
+                                        }
+                                    }
+                                } else {
+                                    logger.warn(`  ⚠️ Failed to fetch metafields from Shopify API: HTTP ${response.status}`);
+                                }
+                            } else {
+                                logger.warn(`  ⚠️ No access token available to fetch metafields from Shopify API`);
+                            }
+                        } catch (apiError) {
+                            logger.warn(`  ⚠️ Error fetching metafields from Shopify API: ${apiError.message}`);
+                        }
+                        
+                        if (metafields.length === 0) {
+                            if (cachedProduct) {
+                                logger.info(`     Product exists but metafields: ${cachedProduct.metafields ? 'empty array' : 'null/undefined'}`);
+                            } else {
+                                logger.info(`     Product not found in database`);
+                            }
+                        }
                     }
                 } catch (dbError) {
-                    // Silently use defaults - don't log to avoid noise
+                    logger.warn(`  ⚠️ DB error fetching metafields for ${item.name}: ${dbError.message}`);
                 }
+            } else {
+                logger.info(`  ⚠️ No productId for ${item.name} - cannot lookup metafields`);
             }
+            
+            addProcessingLog(`📦 Product ${index + 1} data`, {
+                name: item.name,
+                productId: productId,
+                weightKg: weightKg.toFixed(3),
+                isClothing: isClothing,
+                isBattery: isBattery,
+                metafieldsCount: metafields.length,
+                dbFound: dbFound
+            });
             
             return {
                 weightKg,
@@ -981,6 +1169,14 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         const productDataResults = await Promise.all(productDataPromises);
         shopifyApiTime = Date.now() - shopifyApiStartTime;
         logger.info(`⏱️ Product data lookup took: ${shopifyApiTime}ms (${processedItems.length} products, DB only - no Shopify API)`);
+        
+        addProcessingLog(`✅ Product data lookup complete`, {
+            time: shopifyApiTime,
+            itemsProcessed: processedItems.length,
+            totalMetafields: productDataResults.reduce((sum, r) => sum + r.metafields.length, 0),
+            clothingItems: productDataResults.filter(r => r.isClothing).length,
+            batteryItems: productDataResults.filter(r => r.isBattery).length
+        });
         
         // Process results
         for (let i = 0; i < productDataResults.length; i++) {
@@ -1023,6 +1219,11 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             totalQuantity += (item.quantity || 1);
         }
         
+        addProcessingLog(`📏 Calculating dimensions`, {
+            totalQuantity: totalQuantity,
+            metafieldsCount: allMetafields.length
+        });
+        
         // Find max dimensions from all products
         for (const meta of allMetafields) {
             if (meta.key === 'height_raw' || meta.key === 'height_raw_mm_') {
@@ -1048,7 +1249,18 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         // Default weight if zero
         if (combinedWeight <= 0) {
             combinedWeight = 0.1 * totalQuantity; // 0.1kg per item minimum
+            addProcessingLog(`⚠️ Weight was zero, using default: ${combinedWeight.toFixed(3)}kg (0.1kg × ${totalQuantity} items)`);
         }
+        
+        addProcessingLog(`📐 Final dimensions calculated`, {
+            height: combinedDimensions.height,
+            length: combinedDimensions.length,
+            width: combinedDimensions.width,
+            weight: combinedWeight.toFixed(3),
+            maxHeight: maxHeight,
+            maxDiameter: maxDiameter,
+            totalQuantity: totalQuantity
+        });
 
         // Store last request details for debugging
         const requestDetails = {
@@ -1074,11 +1286,15 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             cached: false
         };
         
+        console.log(`🔍 ABOUT TO SET lastRequestDetails`);
+        addProcessingLog(`🔍 ABOUT TO SET lastRequestDetails`);
         lastRequestDetails = requestDetails;
         recentRequests.push(requestDetails);
         if (recentRequests.length > MAX_RECENT_REQUESTS) {
             recentRequests.shift(); // Remove oldest
         }
+        console.log(`✅ SET lastRequestDetails - shop: ${requestDetails.shop}, destination: ${requestDetails.destination}`);
+        addProcessingLog(`✅ SET lastRequestDetails - shop: ${requestDetails.shop}, destination: ${requestDetails.destination}`);
         
         // Log shipment details prominently to console (always visible)
         console.log(`\n📦 SHIPMENT DETAILS:`);
@@ -1099,12 +1315,18 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         logger.info(`═══════════════════════════════════════════════════════════`);
 
         // STEP 2: Check cache first
+        // TEMPORARILY DISABLED FOR DEBUGGING
         const cacheCheckStartTime = Date.now();
-        const cacheKey = generateCacheKey(destination, processedItems, combinedWeight, combinedDimensions);
-        const cachedRates = getCachedRates(cacheKey);
+        // DISABLED: const cacheKey = generateCacheKey(destination, processedItems, combinedWeight, combinedDimensions);
+        const cachedRates = null; // DISABLED: getCachedRates(cacheKey);
         const cacheCheckTime = Date.now() - cacheCheckStartTime;
+        console.log(`⚠️ CACHE TEMPORARILY DISABLED FOR DEBUGGING`);
+        addProcessingLog(`⚠️ CACHE TEMPORARILY DISABLED FOR DEBUGGING`);
+        console.log(`🔍 ABOUT TO CHECK CACHE (will skip because disabled)`);
+        addProcessingLog(`🔍 ABOUT TO CHECK CACHE (will skip because disabled)`);
         
-        if (cachedRates) {
+        if (false && cachedRates && cachedRates.length > 0) { // DISABLED
+            // Only use cache if it has rates - if cache has empty array, recalculate
             // Store request details even for cache hits
             const requestDetails = {
                 timestamp: new Date().toISOString(),
@@ -1135,7 +1357,8 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                 recentRequests.shift(); // Remove oldest
             }
             
-            logger.info(`⚡ Cache HIT! Returning cached rates (key: ${cacheKey.substring(0, 8)}...) - cache check: ${cacheCheckTime}ms`);
+            addProcessingLog(`⚡ Cache HIT: Returning ${cachedRates.length} cached rates`);
+            logger.info(`⚡ Cache HIT! Returning cached rates - cache check: ${cacheCheckTime}ms`);
             const responseTime = Date.now() - startTime;
             const jsonResponse = { rates: cachedRates };
             const compactJson = JSON.stringify(jsonResponse);
@@ -1157,7 +1380,13 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             return;
         }
         
-        logger.info(`💾 Cache MISS - calculating rates (key: ${cacheKey.substring(0, 8)}...) - cache check: ${cacheCheckTime}ms`);
+        if (cachedRates && cachedRates.length === 0) {
+            // Cache has empty rates - clear it and recalculate
+            addProcessingLog(`⚠️ Cache has empty rates - clearing cache and recalculating`);
+            logger.warn(`⚠️ Cache has empty rates - clearing cache and recalculating`);
+        }
+        
+        addProcessingLog(`💾 Cache MISS - will calculate rates`, { cacheCheckTime });
 
         // STEP 3: Calculate shipping ONCE for the combined cart
         const combinedProduct = {
@@ -1177,26 +1406,89 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
 
         // Collect all valid routes
         const allAvailableRoutes = [];
+        // Declare variables outside try block so they're accessible later
+        let validIndividual = []; // For individual shipping (disabled)
+        let totalIndividualPrice = 0; // For individual shipping (disabled)
+        let consolidatedCheapestPrice = 999999; // For price comparison
+        let routesAdded = 0; // Track routes added to response
+        let routesSkipped = 0; // Track routes skipped
+        
+        console.log(`🔵 ABOUT TO START BUCKYDROP CALCULATION`);
+        console.log(`   Target Country: ${targetCountry.name} (${targetCountry.code})`);
+        console.log(`   Items: ${processedItems.length}, Weight: ${combinedWeight}kg`);
+        addProcessingLog(`🔵 Starting BuckyDrop calculation for ${targetCountry.name}`);
+        addProcessingLog(`   Items: ${processedItems.length}, Weight: ${combinedWeight}kg`);
         
         try {
+            console.log(`🔵 INSIDE TRY BLOCK - About to call BuckyDrop API`);
             // OPTION 1: Calculate consolidated shipping (entire cart as one shipment)
             const consolidatedStartTime = Date.now();
+            console.log('🔵 CALLING BUCKYDROP API - CONSOLIDATED');
+            console.log(`   Product: ${combinedProduct.title}`);
+            console.log(`   Weight: ${combinedProduct.variants[0]?.weight}kg`);
+            console.log(`   Country: ${targetCountry.name} (${targetCountry.code})`);
+            addProcessingLog(`🔵 CALLING BUCKYDROP API - CONSOLIDATED for ${targetCountry.name}`);
             logger.info(`📦 Calculating CONSOLIDATED shipping (all items together)`);
-            const consolidatedResult = await shippingService.calculateProductShipping(
-                combinedProduct,
-                combinedMetafields,
-                targetCountry,
-                totalQuantity
-            );
+            let consolidatedResult;
+            try {
+                consolidatedResult = await shippingService.calculateProductShipping(
+                    combinedProduct,
+                    combinedMetafields,
+                    targetCountry,
+                    totalQuantity
+                );
+                console.log(`🔵 BUCKYDROP API CALL SUCCESS`);
+                console.log(`   Result type: ${typeof consolidatedResult}`);
+                console.log(`   Result keys: ${consolidatedResult ? Object.keys(consolidatedResult).join(', ') : 'NULL'}`);
+                console.log(`   allRoutes: ${consolidatedResult?.allRoutes ? consolidatedResult.allRoutes.length : 'NULL/UNDEFINED'}`);
+                addProcessingLog(`✅ BuckyDrop API success`, {
+                routesCount: consolidatedResult?.allRoutes ? consolidatedResult.allRoutes.length : 0,
+                hasAllRoutes: !!consolidatedResult?.allRoutes,
+                resultType: typeof consolidatedResult,
+                resultKeys: consolidatedResult ? Object.keys(consolidatedResult) : null,
+                time: Date.now() - consolidatedStartTime,
+                cheapOption: consolidatedResult?.cheapOption ? {
+                    name: consolidatedResult.cheapOption.serviceName || consolidatedResult.cheapOption.service_name,
+                    price: consolidatedResult.cheapOption.totalPrice
+                } : null,
+                expressOption: consolidatedResult?.expressOption ? {
+                    name: consolidatedResult.expressOption.serviceName || consolidatedResult.expressOption.service_name,
+                    price: consolidatedResult.expressOption.totalPrice
+                } : null,
+                firstFewRoutes: consolidatedResult?.allRoutes ? consolidatedResult.allRoutes.slice(0, 5).map(r => ({
+                    name: r.serviceName || r.service_name,
+                    price: r.totalPrice,
+                    available: r.available,
+                    minDays: r.minTimeInTransit || r.min_time_in_transit,
+                    maxDays: r.maxTimeInTransit || r.max_time_in_transit
+                })) : null
+            });
+            } catch (buckyDropError) {
+                addProcessingLog(`❌❌❌ BUCKYDROP API ERROR ❌❌❌`, {
+                    error: buckyDropError.message,
+                    stack: buckyDropError.stack?.substring(0, 500),
+                    name: buckyDropError.name,
+                    code: buckyDropError.code
+                });
+                logger.error('BuckyDrop API error:', buckyDropError);
+                consolidatedResult = null; // Set to null so we can continue
+            }
             const consolidatedTime = Date.now() - consolidatedStartTime;
+            console.log(`🔵 BUCKYDROP CONSOLIDATED RESULT:`, consolidatedResult ? `${consolidatedResult.allRoutes?.length || 0} routes` : 'NULL/ERROR');
             logger.info(`⏱️ Consolidated shipping calculation took: ${consolidatedTime}ms`);
             
-            // OPTION 2: Calculate individual shipping for each product (parallel)
+            // OPTION 2: Calculate individual shipping for each product (with rate limiting protection)
             const individualStartTime = Date.now();
             logger.info(`📦 Calculating INDIVIDUAL shipping (each product separately)`);
+            addProcessingLog(`📦 Starting individual shipping calculation for ${processedItems.length} products`);
             
+            // Add delay between requests to avoid rate limiting (BuckyDrop has rate limits)
             const individualCalculations = await Promise.all(
                 processedItems.map(async (item, index) => {
+                    // Add small delay between requests to avoid rate limiting (100ms per item)
+                    if (index > 0) {
+                        await new Promise(resolve => setTimeout(resolve, 100 * index));
+                    }
                     const itemWeightKg = ((item.grams || 0) / 1000) * (item.quantity || 1);
                     const itemProduct = {
                         title: item.name || `Product ${index + 1}`,
@@ -1209,13 +1501,53 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                     // Get metafields for this specific product
                     const itemMetafields = productDataResults[index]?.metafields || [];
                     
-                    // Use default dimensions if not found
-                    const itemHeight = itemMetafields.find(m => 
-                        m.key === 'height_raw' || m.key === 'height_raw_mm_'
-                    )?.value || combinedDimensions.height;
-                    const itemDiameter = itemMetafields.find(m => 
-                        m.key === 'largest_diameter_raw' || m.key === 'largest_diameter_raw_mm_'
-                    )?.value || combinedDimensions.length;
+                    // DEBUG: Log metafields lookup
+                    logger.info(`  🔍 Metafields for ${item.name}:`, {
+                        metafieldsCount: itemMetafields.length,
+                        metafieldKeys: itemMetafields.map(m => m.key),
+                        productId: item.product_id
+                    });
+                    addProcessingLog(`🔍 Metafields lookup for ${item.name}`, {
+                        metafieldsCount: itemMetafields.length,
+                        metafieldKeys: itemMetafields.map(m => m.key),
+                        allMetafields: itemMetafields.map(m => ({ key: m.key, value: m.value, namespace: m.namespace })),
+                        productId: item.product_id
+                    });
+                    
+                    // Look for height - try multiple possible keys and namespaces
+                    // Metafields can be: custom.height_raw, shipping.height_raw, or just height_raw
+                    const heightMetafield = itemMetafields.find(m => {
+                        const key = (m.key || '').toLowerCase();
+                        const namespace = (m.namespace || '').toLowerCase();
+                        return key === 'height_raw' || 
+                               key === 'height_raw_mm_' ||
+                               key === 'height' ||
+                               (namespace === 'custom' && key.includes('height')) ||
+                               (namespace === 'shipping' && key.includes('height'));
+                    });
+                    const itemHeight = heightMetafield ? parseFloat(heightMetafield.value) || combinedDimensions.height : combinedDimensions.height;
+                    
+                    // Look for diameter - try multiple possible keys and namespaces
+                    const diameterMetafield = itemMetafields.find(m => {
+                        const key = (m.key || '').toLowerCase();
+                        const namespace = (m.namespace || '').toLowerCase();
+                        return key === 'largest_diameter_raw' || 
+                               key === 'largest_diameter_raw_mm_' ||
+                               key === 'diameter' ||
+                               key === 'largest_diameter' ||
+                               (namespace === 'custom' && (key.includes('diameter') || key.includes('width'))) ||
+                               (namespace === 'shipping' && (key.includes('diameter') || key.includes('width')));
+                    });
+                    const itemDiameter = diameterMetafield ? parseFloat(diameterMetafield.value) || combinedDimensions.length : combinedDimensions.length;
+                    
+                    logger.info(`  📐 Dimensions for ${item.name}: height=${itemHeight}mm, diameter=${itemDiameter}mm (from metafield: ${!!heightMetafield}/${!!diameterMetafield})`);
+                    addProcessingLog(`📐 Dimensions for ${item.name}`, {
+                        height: itemHeight,
+                        diameter: itemDiameter,
+                        heightFromMetafield: !!heightMetafield,
+                        diameterFromMetafield: !!diameterMetafield,
+                        usingDefaults: !heightMetafield || !diameterMetafield
+                    });
                     
                     const itemMetafieldsFormatted = [
                         { namespace: 'custom', key: 'weight_raw_kg_', value: itemWeightKg.toString() },
@@ -1224,19 +1556,155 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                     ];
                     
                     try {
+                        const itemWeightKg = ((item.grams || 0) / 1000) * (item.quantity || 1);
+                        logger.info(`  🔍 Calling BuckyDrop for ${item.name}: weight=${itemWeightKg.toFixed(3)}kg, quantity=${item.quantity || 1}, country=${targetCountry.code}`);
+                        addProcessingLog(`🔍 Calling BuckyDrop for ${item.name}`, {
+                            weight: itemWeightKg,
+                            quantity: item.quantity || 1,
+                            country: targetCountry.code,
+                            grams: item.grams
+                        });
+                        
                         const itemResult = await shippingService.calculateProductShipping(
                             itemProduct,
                             itemMetafieldsFormatted,
                             targetCountry,
                             item.quantity || 1
                         );
+                        
+                        // DEBUG: Log the full result to understand why routes might be missing
+                        logger.info(`  📦 BuckyDrop result for ${item.name}:`, {
+                            hasResult: !!itemResult,
+                            hasAllRoutes: !!(itemResult?.allRoutes),
+                            allRoutesCount: itemResult?.allRoutes?.length || 0,
+                            resultType: typeof itemResult,
+                            resultKeys: itemResult ? Object.keys(itemResult) : null,
+                            hasError: !!(itemResult?.error),
+                            errorMessage: itemResult?.error?.message || null
+                        });
+                        addProcessingLog(`📦 BuckyDrop result for ${item.name}`, {
+                            hasResult: !!itemResult,
+                            hasAllRoutes: !!(itemResult?.allRoutes),
+                            allRoutesCount: itemResult?.allRoutes?.length || 0,
+                            resultType: typeof itemResult,
+                            resultKeys: itemResult ? Object.keys(itemResult) : null,
+                            hasError: !!(itemResult?.error),
+                            errorMessage: itemResult?.error?.message || null,
+                            firstFewRoutes: itemResult?.allRoutes?.slice(0, 3).map(r => ({
+                                name: r.serviceName || r.service_name,
+                                price: r.totalPrice,
+                                available: r.available
+                            })) || null
+                        });
+                        
+                        // Get the actual cheapest route price in CNY (not USD fallback values)
+                        let cheapestPriceCNY = 999999;
+                        if (itemResult && itemResult.allRoutes && itemResult.allRoutes.length > 0) {
+                            const availableRoutes = itemResult.allRoutes.filter(r => 
+                                r.available !== false && 
+                                r.totalPrice && 
+                                r.totalPrice > 0 && 
+                                r.totalPrice < 100000 // Sanity check: price should be reasonable
+                            );
+                            
+                            logger.info(`  📊 Filtered routes for ${item.name}: ${availableRoutes.length} available out of ${itemResult.allRoutes.length} total`);
+                            
+                            if (availableRoutes.length > 0) {
+                                const cheapestRoute = availableRoutes
+                                    .sort((a, b) => (a.totalPrice || 999999) - (b.totalPrice || 999999))[0];
+                                if (cheapestRoute && cheapestRoute.totalPrice) {
+                                    cheapestPriceCNY = cheapestRoute.totalPrice;
+                                    logger.info(`  ✅ Individual shipping for ${item.name}: Found cheapest route at ${cheapestPriceCNY.toFixed(2)} CNY`);
+                                    addProcessingLog(`✅ Individual shipping for ${item.name}: ${cheapestPriceCNY.toFixed(2)} CNY`);
+                                } else {
+                                    logger.warn(`  ⚠️ Individual shipping for ${item.name}: Cheapest route has no valid price`);
+                                    addProcessingLog(`⚠️ Individual shipping for ${item.name}: No valid price found`);
+                                }
+                            } else {
+                                logger.warn(`  ⚠️ Individual shipping for ${item.name}: No available routes with valid prices (${itemResult.allRoutes.length} total routes, all filtered out)`);
+                                addProcessingLog(`⚠️ Individual shipping for ${item.name}: No valid routes`, {
+                                    totalRoutes: itemResult.allRoutes.length,
+                                    availableRoutes: itemResult.allRoutes.filter(r => r.available !== false).length,
+                                    routesWithPrice: itemResult.allRoutes.filter(r => r.totalPrice && r.totalPrice > 0).length,
+                                    sampleRoutes: itemResult.allRoutes.slice(0, 3).map(r => ({
+                                        name: r.serviceName || r.service_name,
+                                        available: r.available,
+                                        price: r.totalPrice
+                                    }))
+                                });
+                            }
+                        } else {
+                            const reason = !itemResult ? 'itemResult is null/undefined' : 
+                                          !itemResult.allRoutes ? 'allRoutes is null/undefined' : 
+                                          itemResult.allRoutes.length === 0 ? 'allRoutes is empty array' : 'unknown';
+                            logger.warn(`  ⚠️ Individual shipping for ${item.name}: No routes in result - ${reason}`);
+                            
+                            // FALLBACK: Use consolidated shipping price proportionally by weight
+                            if (consolidatedResult && consolidatedResult.allRoutes && consolidatedResult.allRoutes.length > 0) {
+                                const cheapestConsolidatedRoute = consolidatedResult.allRoutes
+                                    .filter(r => r.available !== false && r.totalPrice && r.totalPrice > 0)
+                                    .sort((a, b) => (a.totalPrice || 999999) - (b.totalPrice || 999999))[0];
+                                
+                                if (cheapestConsolidatedRoute && cheapestConsolidatedRoute.totalPrice) {
+                                    // Calculate proportional price based on weight
+                                    const itemWeightRatio = itemWeightKg / combinedWeight;
+                                    const fallbackPrice = cheapestConsolidatedRoute.totalPrice * itemWeightRatio;
+                                    cheapestPriceCNY = Math.ceil(fallbackPrice * 100) / 100; // Round to 2 decimals
+                                    
+                                    logger.info(`  🔄 FALLBACK: Using consolidated price for ${item.name}: ${cheapestPriceCNY.toFixed(2)} CNY (${(itemWeightRatio * 100).toFixed(1)}% of ${cheapestConsolidatedRoute.totalPrice.toFixed(2)} CNY by weight)`);
+                                    addProcessingLog(`🔄 FALLBACK: Using consolidated price for ${item.name}`, {
+                                        fallbackPrice: cheapestPriceCNY,
+                                        consolidatedPrice: cheapestConsolidatedRoute.totalPrice,
+                                        itemWeight: itemWeightKg,
+                                        totalWeight: combinedWeight,
+                                        weightRatio: itemWeightRatio,
+                                        routeName: cheapestConsolidatedRoute.serviceName || cheapestConsolidatedRoute.service_name
+                                    });
+                                } else {
+                                    logger.warn(`  ⚠️ FALLBACK: Consolidated route has no valid price`);
+                                }
+                            } else {
+                                logger.warn(`  ⚠️ FALLBACK: No consolidated routes available for fallback`);
+                            }
+                            
+                            // Log BuckyDrop debug info to understand why no routes
+                            if (itemResult?.debugLogs && itemResult.debugLogs.length > 0) {
+                                logger.warn(`  📋 BuckyDrop debug logs for ${item.name}:`, itemResult.debugLogs);
+                            }
+                            if (itemResult?.adjWeight || itemResult?.adjDimensions) {
+                                logger.warn(`  📋 BuckyDrop calculated params for ${item.name}:`, {
+                                    adjWeight: itemResult.adjWeight,
+                                    adjDimensions: itemResult.adjDimensions,
+                                    rawWeight: itemResult.rawWeight
+                                });
+                            }
+                            
+                            addProcessingLog(`⚠️ Individual shipping for ${item.name}: No routes found`, {
+                                reason: reason,
+                                hasResult: !!itemResult,
+                                hasAllRoutes: !!(itemResult?.allRoutes),
+                                allRoutesLength: itemResult?.allRoutes?.length || 0,
+                                error: itemResult?.error || null,
+                                debugLogs: itemResult?.debugLogs || [],
+                                adjWeight: itemResult?.adjWeight,
+                                adjDimensions: itemResult?.adjDimensions,
+                                rawWeight: itemResult?.rawWeight,
+                                requestParams: {
+                                    weight: itemWeightKg,
+                                    height: itemHeight,
+                                    diameter: itemDiameter,
+                                    quantity: item.quantity || 1,
+                                    country: targetCountry.code
+                                },
+                                fallbackApplied: cheapestPriceCNY < 999999,
+                                fallbackPrice: cheapestPriceCNY < 999999 ? cheapestPriceCNY : null
+                            });
+                        }
+                        
                         return {
                             item: item,
                             result: itemResult,
-                            cheapestPrice: Math.min(
-                                itemResult.maxCheapPriceUSD || 999999,
-                                itemResult.maxExpressPriceUSD || 999999
-                            )
+                            cheapestPrice: cheapestPriceCNY
                         };
                     } catch (error) {
                         logger.warn(`  ⚠️ Failed to calculate individual shipping for ${item.name}: ${error.message}`);
@@ -1244,17 +1712,65 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                     }
                 })
             );
-            
             const individualTime = Date.now() - individualStartTime;
             logger.info(`⏱️ Individual shipping calculations took: ${individualTime}ms (${processedItems.length} products)`);
+            addProcessingLog(`✅ Individual shipping calculation complete`, { time: individualTime, itemsCount: processedItems.length });
             
             // Calculate total for individual shipping
-            const validIndividual = individualCalculations.filter(c => c !== null);
-            const totalIndividualPrice = validIndividual.reduce((sum, calc) => sum + calc.cheapestPrice, 0);
-            const consolidatedCheapestPrice = Math.min(
-                consolidatedResult.maxCheapPriceUSD || 999999,
-                consolidatedResult.maxExpressPriceUSD || 999999
+            // Include items with valid prices (from routes OR fallback)
+            validIndividual = individualCalculations.filter(c => 
+                c !== null && 
+                c.cheapestPrice > 0 && // Must have a price > 0
+                c.cheapestPrice < 100000 // Only include items with valid prices (not the 999999 fallback)
+                // Note: We include items with fallback prices too (they have valid prices but allRoutes.length === 0)
             );
+            totalIndividualPrice = validIndividual.reduce((sum, calc) => sum + calc.cheapestPrice, 0);
+            
+            logger.info(`📊 Individual Shipping Summary:`);
+            logger.info(`   Valid calculations: ${validIndividual.length} / ${individualCalculations.length}`);
+            logger.info(`   Total price: ${totalIndividualPrice.toFixed(2)} CNY`);
+            addProcessingLog(`📊 Individual Shipping: ${validIndividual.length} valid, Total: ${totalIndividualPrice.toFixed(2)} CNY`);
+            
+            // Allow individual shipping even if not all items have routes (use the ones that do)
+            if (validIndividual.length === 0) {
+                logger.warn(`⚠️ Individual shipping: No items have valid routes. Hiding individual shipping option.`);
+                addProcessingLog(`⚠️ Individual shipping: No items have valid routes - hiding option`);
+                totalIndividualPrice = 0;
+            } else if (validIndividual.length < processedItems.length) {
+                logger.info(`ℹ️ Individual shipping: Using ${validIndividual.length} of ${processedItems.length} items (some failed to get rates)`);
+                addProcessingLog(`ℹ️ Individual shipping: Using ${validIndividual.length}/${processedItems.length} items`);
+                // DON'T reset totalIndividualPrice - keep it so we can show the option
+            }
+            
+            addProcessingLog(`📊 Individual shipping final check`, {
+                validIndividualCount: validIndividual.length,
+                processedItemsCount: processedItems.length,
+                totalIndividualPrice: totalIndividualPrice,
+                willShow: validIndividual.length > 0 && totalIndividualPrice > 0 && totalIndividualPrice < 100000,
+                validIndividualItems: validIndividual.map(c => ({
+                    name: c.item.name,
+                    cheapestPrice: c.cheapestPrice
+                }))
+            });
+            
+            // CRITICAL: Ensure totalIndividualPrice is NOT reset if we have valid items
+            // This prevents the old code logic from hiding individual shipping incorrectly
+            if (validIndividual.length > 0 && totalIndividualPrice === 0) {
+                logger.warn(`⚠️ WARNING: totalIndividualPrice was reset to 0 but we have ${validIndividual.length} valid items! Recalculating...`);
+                totalIndividualPrice = validIndividual.reduce((sum, calc) => sum + calc.cheapestPrice, 0);
+                addProcessingLog(`🔧 FIXED: Recalculated totalIndividualPrice to ${totalIndividualPrice.toFixed(2)} CNY`);
+            }
+            
+            // Calculate consolidated cheapest price from actual routes (in CNY)
+            consolidatedCheapestPrice = 999999;
+            if (consolidatedResult && consolidatedResult.allRoutes && consolidatedResult.allRoutes.length > 0) {
+                const cheapestConsolidatedRoute = consolidatedResult.allRoutes
+                    .filter(r => r.available !== false && r.totalPrice)
+                    .sort((a, b) => (a.totalPrice || 999999) - (b.totalPrice || 999999))[0];
+                if (cheapestConsolidatedRoute && cheapestConsolidatedRoute.totalPrice) {
+                    consolidatedCheapestPrice = cheapestConsolidatedRoute.totalPrice;
+                }
+            }
             
             logger.info(`💰 Price Comparison:`);
             logger.info(`   Consolidated: ${consolidatedCheapestPrice.toFixed(2)} CNY`);
@@ -1292,26 +1808,82 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
 
             // Collect all valid routes
             let routesToProcess = [];
-            if (result.allRoutes && Array.isArray(result.allRoutes) && result.allRoutes.length > 0) {
+            console.log('🔵 BUCKYDROP RESULT CHECK:');
+            console.log(`   consolidatedResult: ${consolidatedResult ? 'EXISTS' : 'NULL'}`);
+            console.log(`   result: ${result ? 'EXISTS' : 'NULL'}`);
+            console.log(`   result.allRoutes: ${result?.allRoutes ? result.allRoutes.length : 'NULL/UNDEFINED'}`);
+            console.log(`   result.cheapOption: ${result?.cheapOption ? 'EXISTS' : 'NULL'}`);
+            console.log(`   result.expressOption: ${result?.expressOption ? 'EXISTS' : 'NULL'}`);
+            if (result && result.allRoutes && Array.isArray(result.allRoutes) && result.allRoutes.length > 0) {
                 routesToProcess = result.allRoutes;
+                console.log(`   ✅ Using ${result.allRoutes.length} routes from allRoutes`);
                 logger.info(`  ✓ Found ${result.allRoutes.length} routes for combined shipment`);
             } else {
+                console.log(`   ⚠️ allRoutes empty/null, checking cheapOption/expressOption`);
                 logger.warn(`  ⚠️ allRoutes not available, using cheapOption and expressOption`);
-                if (result.cheapOption) routesToProcess.push(result.cheapOption);
-                if (result.expressOption) routesToProcess.push(result.expressOption);
+                if (result && result.cheapOption) {
+                    routesToProcess.push(result.cheapOption);
+                    console.log(`   ✅ Added cheapOption`);
+                }
+                if (result && result.expressOption) {
+                    routesToProcess.push(result.expressOption);
+                    console.log(`   ✅ Added expressOption`);
+                }
             }
             
+            // If no routes at all, log error
+            if (routesToProcess.length === 0) {
+                addProcessingLog(`❌❌❌ NO ROUTES TO PROCESS`, {
+                    consolidatedResult: consolidatedResult ? 'EXISTS' : 'NULL',
+                    consolidatedResultType: typeof consolidatedResult,
+                    resultAllRoutes: result?.allRoutes ? result.allRoutes.length : 'NULL',
+                    resultCheapOption: result?.cheapOption ? 'EXISTS' : 'NULL',
+                    resultExpressOption: result?.expressOption ? 'EXISTS' : 'NULL',
+                    consolidatedAllRoutes: consolidatedResult?.allRoutes ? consolidatedResult.allRoutes.length : 'NULL'
+                });
+                logger.error(`❌ No routes to process - consolidatedResult may be null or empty`);
+            }
+            
+            console.log(`🔵 TOTAL ROUTES TO PROCESS: ${routesToProcess.length}`);
             // Reduced logging - only log count in production
             if (process.env.NODE_ENV !== 'production') {
                 logger.info(`  Processing ${routesToProcess.length} routes from BuckyDrop`);
             }
+            addProcessingLog(`🔵 Processing ${routesToProcess.length} routes from BuckyDrop`, {
+                routesToProcessCount: routesToProcess.length,
+                consolidatedResultExists: !!consolidatedResult,
+                consolidatedAllRoutesCount: consolidatedResult?.allRoutes ? consolidatedResult.allRoutes.length : 0,
+                routesPreview: routesToProcess.slice(0, 10).map((r, idx) => ({
+                    index: idx,
+                    name: r.serviceName || r.service_name || 'UNKNOWN',
+                    price: r.totalPrice || 0,
+                    available: r.available,
+                    minDays: r.minTimeInTransit || r.min_time_in_transit || 5,
+                    maxDays: r.maxTimeInTransit || r.max_time_in_transit || 15
+                }))
+            });
+            // Reset counters for this batch
+            routesAdded = 0;
+            routesSkipped = 0;
             for (const route of routesToProcess) {
+                addProcessingLog(`🔍 Processing route`, {
+                    routeName: route.serviceName || route.service_name || 'UNKNOWN',
+                    available: route.available,
+                    totalPrice: route.totalPrice,
+                    index: routesAdded + routesSkipped
+                });
                 let routeName = route.serviceName || route.service_name || route.channelName || route.channel_name || 'BuckyDrop Shipping';
                 
                 // Only include routes that are available
                 if (route.available === false || !route.totalPrice) {
+                    console.log(`   ⏭️ Skipped: ${routeName} (available=${route.available}, price=${route.totalPrice})`);
+                    addProcessingLog(`⏭️ Skipped route: ${routeName} (available=${route.available}, price=${route.totalPrice})`);
+                    routesSkipped++;
                     continue;
                 }
+                routesAdded++;
+                console.log(`   ✅ Processing: ${routeName} (price=${route.totalPrice})`);
+                addProcessingLog(`✅ Adding route: ${routeName} (${route.totalPrice} CNY)`);
                 
                 // BuckyDrop provides prices in RMB (CNY)
                 // Send CNY currency to Shopify - Shopify will convert to checkout currency automatically
@@ -1364,6 +1936,33 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                         logger.info(`    🔄 Renamed route: "${originalName}" → "${routeName}"`);
                     }
                     
+                    // AGGRESSIVE: Remove "Hong Kong" / "Hongkong" / "HK" from UPS routes (do this EARLY)
+                    // This must happen before other cleaning to catch all variations
+                    // Check if it's a UPS route and contains Hong Kong variations
+                    const isUPS = routeName.toUpperCase().includes('UPS');
+                    const hasHongKong = /Hong\s*Kong|Hongkong|Hong-Kong|\bHK\b/i.test(routeName);
+                    if (isUPS && hasHongKong) {
+                        const beforeClean = routeName;
+                        routeName = routeName.replace(/Hong\s*Kong/gi, '');
+                        routeName = routeName.replace(/Hongkong/gi, '');
+                        routeName = routeName.replace(/Hong-Kong/gi, '');
+                        routeName = routeName.replace(/\bHK\b/gi, '');
+                        routeName = routeName.replace(/HK\s+/gi, '');
+                        routeName = routeName.replace(/\s+HK/gi, '');
+                        routeName = routeName.replace(/\(HK\)/gi, '');
+                        routeName = routeName.replace(/HK-/gi, '');
+                        routeName = routeName.replace(/-HK/gi, '');
+                        // Remove empty parentheses like "UPS()" → "UPS" (do this early)
+                        routeName = routeName.replace(/\(\)/g, '');
+                        // Also remove patterns like "UPS()-5000" → "UPS-5000" (remove empty parens before dashes)
+                        routeName = routeName.replace(/\(\)-/g, '-');
+                        // Remove any remaining empty parentheses (multiple passes to catch all)
+                        routeName = routeName.replace(/\(\)/g, '');
+                        routeName = routeName.replace(/\s+/g, ' ').trim();
+                        logger.info(`    🔄 Cleaned UPS route: "${beforeClean}" → "${routeName}"`);
+                        addProcessingLog(`🔄 Cleaned UPS route: "${beforeClean}" → "${routeName}"`);
+                    }
+                    
                     // Remove "Yun" from "YunExpress"
                     routeName = routeName.replace(/YunExpress/gi, 'Express');
                     routeName = routeName.replace(/Yun Express/gi, 'Express');
@@ -1413,8 +2012,42 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                     // Fix redundant "Express" (e.g., "Express Fast Express Line" → "Express Fast Line")
                     routeName = routeName.replace(/Express\s+Fast\s+Express/gi, 'Express Fast');
                     routeName = routeName.replace(/Express\s+Express/gi, 'Express');
+                    // FINAL: Remove "Hong Kong" / "HK" from any remaining UPS routes (final cleanup)
+                    // This is a catch-all to ensure no "Hong Kong" remains in UPS routes
+                    if (routeName.toUpperCase().includes('UPS')) {
+                        const beforeFinal = routeName;
+                        routeName = routeName.replace(/Hong\s*Kong/gi, '');
+                        routeName = routeName.replace(/Hongkong/gi, '');
+                        routeName = routeName.replace(/Hong-Kong/gi, '');
+                        routeName = routeName.replace(/\bHK\b/gi, '');
+                        routeName = routeName.replace(/HK\s+/gi, '');
+                        routeName = routeName.replace(/\s+HK/gi, '');
+                        routeName = routeName.replace(/\(HK\)/gi, '');
+                        routeName = routeName.replace(/HK-/gi, '');
+                        routeName = routeName.replace(/-HK/gi, '');
+                        // Remove empty parentheses like "UPS()" → "UPS"
+                        routeName = routeName.replace(/\(\)/g, '');
+                        // Also remove patterns like "UPS()-5000" → "UPS-5000" (remove empty parens before dashes)
+                        routeName = routeName.replace(/\(\)-/g, '-');
+                        routeName = routeName.replace(/\s+/g, ' ').trim();
+                        if (beforeFinal !== routeName) {
+                            logger.info(`    🔄 Final UPS cleanup: "${beforeFinal}" → "${routeName}"`);
+                            addProcessingLog(`🔄 Final UPS cleanup: "${beforeFinal}" → "${routeName}"`);
+                        }
+                    }
+                    
                     // Clean up extra spaces
                     routeName = routeName.replace(/\s+/g, ' ').trim();
+                    // FINAL cleanup: Remove any remaining empty parentheses (catch-all) - MULTIPLE PASSES
+                    const beforeFinalClean = routeName;
+                    routeName = routeName.replace(/\(\)/g, ''); // First pass
+                    routeName = routeName.replace(/\(\)-/g, '-'); // Remove empty parens before dashes
+                    routeName = routeName.replace(/\(\)/g, ''); // Second pass to catch any remaining
+                    routeName = routeName.replace(/\s+/g, ' ').trim();
+                    if (beforeFinalClean !== routeName && beforeFinalClean.includes('()')) {
+                        logger.info(`    🔧 FINAL cleanup removed empty parentheses: "${beforeFinalClean}" → "${routeName}"`);
+                        addProcessingLog(`🔧 FINAL cleanup: "${beforeFinalClean}" → "${routeName}"`);
+                    }
                     // CRITICAL: Make service_code UNIQUE - Shopify deduplicates by service_code!
                     // Use route index + price + days to ensure uniqueness
                     // Clean the base code: remove special chars, limit length, ensure it's valid XML
@@ -1431,7 +2064,10 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                     const priceHash = Math.round(routePriceFinal * 100).toString().substring(0, 6);
                     const serviceCode = `${baseCode}_${routeIndex}_${priceHash}`.substring(0, 50); // Limit total length
                     
+                    console.log(`   📦 Adding to allAvailableRoutes: ${routeName} (${routePriceFinal} CNY)`);
                     allAvailableRoutes.push({
+                        _debug_source: 'BuckyDrop',
+                        _debug_original_route: route,
                         service_name: routeName,
                         service_code: serviceCode,
                         priceFinal: routePriceFinal, // Price in CNY (RMB)
@@ -1444,7 +2080,18 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                 }
 
         } catch (error) {
+            addProcessingLog(`❌❌❌ ERROR IN BUCKYDROP TRY BLOCK ❌❌❌`, {
+                error: error.message,
+                stack: error.stack?.substring(0, 1000),
+                name: error.name,
+                code: error.code,
+                targetCountry: targetCountry ? { name: targetCountry.name, code: targetCountry.code } : null,
+                processedItemsCount: processedItems.length,
+                combinedWeight: combinedWeight
+            });
             logger.error(`Error calculating shipping for combined cart:`, error);
+            logger.error(`Error message: ${error.message}`);
+            logger.error(`Error stack: ${error.stack}`);
             return res.status(200).json({ rates: [] });
         }
 
@@ -1460,6 +2107,14 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         const filteredRoutes = [];
         const premiumCarriers = ['UPS', 'DHL', 'FEDEX'];
         
+        addProcessingLog(`🔍 Starting domination filter`, {
+            totalRoutes: allAvailableRoutes.length,
+            premiumCarriers: premiumCarriers
+        });
+        
+        let dominatedCount = 0;
+        let premiumKeptCount = 0;
+        
         for (let i = 0; i < allAvailableRoutes.length; i++) {
             const routeA = allAvailableRoutes[i];
             
@@ -1470,11 +2125,13 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             // Skip domination check for premium carriers - always include them
             if (isPremiumCarrier) {
                 filteredRoutes.push(routeA);
+                premiumKeptCount++;
                 logger.info(`    ✓ Kept premium carrier (always show): ${routeA.service_name}`);
                 continue;
             }
             
             let isDominated = false;
+            let dominatedBy = null;
             
             // Check if routeA is dominated by any other route
             for (let j = 0; j < allAvailableRoutes.length; j++) {
@@ -1485,6 +2142,8 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                 // RouteA is dominated if routeB is both faster (lower maxDays) AND cheaper
                 if (routeB.maxDays < routeA.maxDays && routeB.priceFinal < routeA.priceFinal) {
                     isDominated = true;
+                    dominatedBy = routeB.service_name;
+                    dominatedCount++;
                     logger.info(`    ⏭️ Skipped route (dominated): ${routeA.service_name} - ${routeA.maxDays} days, $${routeA.priceFinal.toFixed(2)} (${routeB.service_name} is faster AND cheaper)`);
                     break;
                 }
@@ -1494,6 +2153,14 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                 filteredRoutes.push(routeA);
             }
         }
+        
+        addProcessingLog(`✅ Domination filter complete`, {
+            inputRoutes: allAvailableRoutes.length,
+            outputRoutes: filteredRoutes.length,
+            dominatedCount: dominatedCount,
+            premiumKeptCount: premiumKeptCount,
+            removedCount: allAvailableRoutes.length - filteredRoutes.length
+        });
         
         // Deduplicate by PRICE: if multiple options have the same price, keep only the fastest one
         // Round prices to nearest 50p (£0.50) for GBP, or nearest cent for other currencies
@@ -1565,6 +2232,13 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         const priceDeduplicatedRoutes = Array.from(priceMap.values());
         logger.info(`  🔄 Deduplicated by price: ${filteredRoutes.length} routes → ${priceDeduplicatedRoutes.length} routes (kept fastest option per price point)`);
         
+        addProcessingLog(`✅ Price deduplication complete`, {
+            inputRoutes: filteredRoutes.length,
+            outputRoutes: priceDeduplicatedRoutes.length,
+            removedCount: filteredRoutes.length - priceDeduplicatedRoutes.length,
+            currency: checkoutCurrency
+        });
+        
         // FILTERING RULE 3: Deduplicate by delivery time - if same or very similar delivery time, keep only cheapest
         // This handles cases where prices differ but delivery times are identical or very close
         // Shopify may display overlapping ranges as the same (e.g., "9-14 days"), so we deduplicate similar ranges
@@ -1621,6 +2295,12 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         
         logger.info(`  🔄 Deduplicated by delivery time: ${priceDeduplicatedRoutes.length} routes → ${timeDeduplicatedRoutes.length} routes (kept cheapest option per similar delivery time)`);
         
+        addProcessingLog(`✅ Time deduplication complete`, {
+            inputRoutes: priceDeduplicatedRoutes.length,
+            outputRoutes: timeDeduplicatedRoutes.length,
+            removedCount: priceDeduplicatedRoutes.length - timeDeduplicatedRoutes.length
+        });
+        
         // FILTERING RULE 4: If two options are within 10% price difference, keep only the faster one
         // This reduces clutter while keeping meaningful price differences
         // EXCEPTION: Always keep UPS, DHL, and FedEx even if within 10% price of faster routes
@@ -1671,6 +2351,13 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         
         logger.info(`  🔄 Price proximity filter (10%): ${timeDeduplicatedRoutes.length} routes → ${priceProximityFilteredRoutes.length} routes (kept faster option when prices within 10%)`);
         
+        addProcessingLog(`✅ Price proximity filter complete`, {
+            inputRoutes: timeDeduplicatedRoutes.length,
+            outputRoutes: priceProximityFilteredRoutes.length,
+            removedCount: timeDeduplicatedRoutes.length - priceProximityFilteredRoutes.length,
+            threshold: '10%'
+        });
+        
         // FILTERING RULE 5: Deduplicate by carrier - but ALWAYS show all DHL, UPS, and FedEx options
         // Only deduplicate Aramex and EMS (keep cheapest per carrier)
         // NOTE: ePacket options are NOT deduplicated - show multiple if they offer different value (faster vs cheaper)
@@ -1720,6 +2407,13 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         
         logger.info(`  🔄 Carrier deduplication: ${priceProximityFilteredRoutes.length} routes → ${deduplicatedRoutes.length} routes (always show DHL/UPS/FedEx, deduplicate Aramex/EMS)`);
         
+        addProcessingLog(`✅ Carrier deduplication complete`, {
+            inputRoutes: priceProximityFilteredRoutes.length,
+            outputRoutes: deduplicatedRoutes.length,
+            removedCount: priceProximityFilteredRoutes.length - deduplicatedRoutes.length,
+            alwaysShowCarriers: alwaysShowCarriers
+        });
+        
         // Final deduplication: Shopify deduplicates by service_name, so we need to ensure unique service_names
         // For DHL/UPS/FedEx, keep only the cheapest option per carrier name
         // Sort by price first (cheapest first) so we keep the cheapest duplicate
@@ -1751,6 +2445,23 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         const uniqueRoutes = finalDeduplicatedRoutes; // Return deduplicated routes
         logger.info(`  ✓ Found ${allAvailableRoutes.length} total routes, ${filteredRoutes.length} non-dominated routes, ${priceDeduplicatedRoutes.length} after price deduplication, ${timeDeduplicatedRoutes.length} after time deduplication, ${priceProximityFilteredRoutes.length} after price proximity filter, ${deduplicatedRoutes.length} after carrier deduplication, returning all ${uniqueRoutes.length} options`);
         logger.info(`  📊 DEBUG: Routes being returned: ${JSON.stringify(uniqueRoutes.map(r => ({ name: r.service_name, price: r.priceFinal, code: r.service_code })), null, 2)}`);
+        
+        addProcessingLog(`✅ Final deduplication complete`, {
+            totalRoutes: allAvailableRoutes.length,
+            afterDomination: filteredRoutes.length,
+            afterPriceDedup: priceDeduplicatedRoutes.length,
+            afterTimeDedup: timeDeduplicatedRoutes.length,
+            afterProximity: priceProximityFilteredRoutes.length,
+            afterCarrierDedup: deduplicatedRoutes.length,
+            finalUniqueRoutes: uniqueRoutes.length,
+            finalRoutes: uniqueRoutes.map(r => ({
+                name: r.service_name,
+                price: r.priceFinal,
+                code: r.service_code,
+                minDays: r.minDays,
+                maxDays: r.maxDays
+            }))
+        });
 
         // Build JSON response directly (Shopify expects JSON format)
         const responseJson = {
@@ -1759,10 +2470,14 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
 
         // Add all unique routes as shipping options (CONSOLIDATED - all items together)
         logger.info(`  💰 Converting prices to cents for JSON response:`);
+        addProcessingLog(`💰 Converting ${uniqueRoutes.length} routes to Shopify format`);
+        
         for (const route of uniqueRoutes) {
-            // Round UP to nearest cent (Math.ceil) to avoid underestimating costs
-            const priceCents = Math.ceil(route.priceFinal * 100);
-            logger.info(`    Route: ${route.service_name} | Price: ${route.priceFinal.toFixed(2)} ${route.currency} = ${priceCents} cents`);
+            // Add 13% buffer to shipping prices
+            const priceWithBuffer = route.priceFinal * 1.13;
+            // Round to nearest cent (exact conversion, no rounding up)
+            const priceCents = Math.round(priceWithBuffer * 100);
+            logger.info(`    Route: ${route.service_name} | Price: ${route.priceFinal.toFixed(2)} ${route.currency} → ${priceWithBuffer.toFixed(2)} ${route.currency} (+13%) = ${priceCents} cents`);
             
             // Calculate delivery dates from transit days
             const minDate = new Date();
@@ -1770,69 +2485,84 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             const maxDate = new Date();
             maxDate.setDate(maxDate.getDate() + route.maxDays);
             
-            responseJson.rates.push({
-                service_name: `${route.service_name} (Consolidated)`, // Mark as consolidated
-                service_code: route.service_code + '_CONSOLIDATED',
+            const rateEntry = {
+                service_name: route.service_name, // No suffix
+                service_code: route.service_code,
                 total_price: priceCents.toString(), // Ensure total_price is a string in cents
                 currency: route.currency,
                 min_delivery_date: minDate.toISOString().split('T')[0],
                 max_delivery_date: maxDate.toISOString().split('T')[0],
+            };
+            
+            responseJson.rates.push(rateEntry);
+            logger.info(`  ✓ Added consolidated rate: ${route.service_name} - ${route.currency} ${priceWithBuffer.toFixed(2)} (${priceCents} cents, +13% buffer) - ${route.minDays}-${route.maxDays} days`);
+            
+            addProcessingLog(`✅ Added consolidated rate`, {
+                serviceName: rateEntry.service_name,
+                serviceCode: rateEntry.service_code,
+                priceCents: priceCents,
+                priceCNY: priceWithBuffer.toFixed(2),
+                originalPriceCNY: route.priceFinal.toFixed(2),
+                bufferPercent: 13,
+                currency: route.currency,
+                minDate: rateEntry.min_delivery_date,
+                maxDate: rateEntry.max_delivery_date,
+                minDays: route.minDays,
+                maxDays: route.maxDays
             });
-            logger.info(`  ✓ Added consolidated rate: ${route.service_name} - ${route.currency} ${route.priceFinal.toFixed(2)} (${priceCents} cents) - ${route.minDays}-${route.maxDays} days`);
         }
         
-        // Add INDIVIDUAL shipping option (each product shipped separately)
-        if (validIndividual.length > 0 && totalIndividualPrice > 0) {
-            // Find average delivery time from individual routes
-            let avgMinDays = 0;
-            let avgMaxDays = 0;
-            let individualRouteCount = 0;
-            
-            for (const calc of validIndividual) {
-                if (calc.result && calc.result.allRoutes && calc.result.allRoutes.length > 0) {
-                    const cheapestRoute = calc.result.allRoutes
-                        .filter(r => r.available !== false && r.totalPrice)
-                        .sort((a, b) => (a.totalPrice || 999999) - (b.totalPrice || 999999))[0];
-                    
-                    if (cheapestRoute) {
-                        avgMinDays += cheapestRoute.minTimeInTransit || cheapestRoute.min_time_in_transit || 5;
-                        avgMaxDays += cheapestRoute.maxTimeInTransit || cheapestRoute.max_time_in_transit || 15;
-                        individualRouteCount++;
-                    }
-                }
-            }
-            
-            if (individualRouteCount > 0) {
-                avgMinDays = Math.ceil(avgMinDays / individualRouteCount);
-                avgMaxDays = Math.ceil(avgMaxDays / individualRouteCount);
-                
-                const individualPriceCents = Math.ceil(totalIndividualPrice * 100);
-                const minDate = new Date();
-                minDate.setDate(minDate.getDate() + avgMinDays);
-                const maxDate = new Date();
-                maxDate.setDate(maxDate.getDate() + avgMaxDays);
-                
-                responseJson.rates.push({
-                    service_name: `Ship Separately (${processedItems.length} packages)`,
-                    service_code: 'INDIVIDUAL_SHIPPING',
-                    total_price: individualPriceCents.toString(),
-                    currency: 'CNY',
-                    min_delivery_date: minDate.toISOString().split('T')[0],
-                    max_delivery_date: maxDate.toISOString().split('T')[0],
-                });
-                
-                logger.info(`  ✓ Added individual shipping option: ${totalIndividualPrice.toFixed(2)} CNY (${individualPriceCents} cents) - ${avgMinDays}-${avgMaxDays} days`);
-                logger.info(`  💰 Comparison: Consolidated=${consolidatedCheapestPrice.toFixed(2)} CNY vs Individual=${totalIndividualPrice.toFixed(2)} CNY`);
-            }
-        }
+        addProcessingLog(`✅ Consolidated rates added to response`, {
+            count: responseJson.rates.length
+        });
 
         // If no rates found, return empty JSON response
+        console.log(`🔵 FINAL CHECK BEFORE RETURN:`);
+        console.log(`   responseJson.rates.length = ${responseJson.rates.length}`);
+        console.log(`   allAvailableRoutes.length = ${allAvailableRoutes ? allAvailableRoutes.length : 'undefined'}`);
+        console.log(`   uniqueRoutes.length = ${uniqueRoutes ? uniqueRoutes.length : 'undefined'}`);
+        
+        addProcessingLog(`🔍 Final check before returning response`, {
+            ratesCount: responseJson.rates.length,
+            allAvailableRoutesCount: allAvailableRoutes ? allAvailableRoutes.length : 0,
+            uniqueRoutesCount: uniqueRoutes ? uniqueRoutes.length : 0,
+            routesAdded: routesAdded || 0,
+            routesSkipped: routesSkipped || 0,
+        });
+        
         if (responseJson.rates.length === 0) {
+            console.log('❌❌❌ NO RATES FOUND ❌❌❌');
+            console.log(`Shop: ${shopDomain}`);
+            console.log(`Processed Items: ${processedItems.length}`);
+            console.log(`All Available Routes: ${allAvailableRoutes ? allAvailableRoutes.length : 'undefined'}`);
+            console.log(`Unique Routes: ${uniqueRoutes ? uniqueRoutes.length : 'undefined'}`);
+            console.log(`Routes Added: ${routesAdded || 'N/A'}, Routes Skipped: ${routesSkipped || 'N/A'}`);
             logger.warn(`No shipping rates found for ${shopDomain} - returning empty rates array`);
-            logger.warn(`  Reason: processedItems=${processedItems.length}, allAvailableRoutes=${allAvailableRoutes.length}, uniqueRoutes=${uniqueRoutes.length}`);
+            logger.warn(`  Reason: processedItems=${processedItems.length}, allAvailableRoutes=${allAvailableRoutes ? allAvailableRoutes.length : 'undefined'}, uniqueRoutes=${uniqueRoutes ? uniqueRoutes.length : 'undefined'}`);
+            
+            addProcessingLog(`❌❌❌ NO RATES FOUND - RETURNING EMPTY ❌❌❌`, {
+                shop: shopDomain,
+                processedItemsCount: processedItems.length,
+                allAvailableRoutesCount: allAvailableRoutes ? allAvailableRoutes.length : 0,
+                uniqueRoutesCount: uniqueRoutes ? uniqueRoutes.length : 0,
+                routesAdded: routesAdded || 0,
+                routesSkipped: routesSkipped || 0,
+                consolidatedResultExists: !!consolidatedResult,
+                consolidatedAllRoutesCount: consolidatedResult?.allRoutes ? consolidatedResult.allRoutes.length : 0
+            });
+            
             res.set('Content-Type', 'application/json; charset=utf-8');
             return res.status(200).json({ rates: [] });
         }
+        
+        addProcessingLog(`✅ Final response prepared`, {
+            totalRates: responseJson.rates.length,
+            ratesPreview: responseJson.rates.slice(0, 10).map(r => ({
+                serviceName: r.service_name,
+                priceCents: r.total_price,
+                currency: r.currency
+            }))
+        });
 
         const responseTime = Date.now() - startTime;
         
@@ -1840,8 +2570,9 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         const jsonResponse = responseJson;
         
         // Cache the results for future requests (before sending response)
-        // Reuse cacheKey from earlier (already calculated at line 1068)
-        setCachedRates(cacheKey, jsonResponse.rates);
+        // TEMPORARILY DISABLED FOR DEBUGGING
+        // setCachedRates(cacheKey, jsonResponse.rates);
+        console.log(`⚠️ CACHE SETTING DISABLED FOR DEBUGGING`);
         
         // CRITICAL: Check if response was already sent
         if (res.headersSent) {
@@ -1871,14 +2602,39 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                 const processingTime = totalTime - shopifyApiTime - buckyDropTime;
                 logger.info(`✅ Response sent: ${jsonResponse.rates.length} rates in ${totalTime}ms`);
                 logger.info(`⏱️ Full timing: Shopify=${shopifyApiTime}ms, BuckyDrop=${buckyDropTime}ms, Processing=${processingTime}ms, Total=${totalTime}ms`);
+                
+                addProcessingLog(`✅✅✅ RESPONSE SENT SUCCESSFULLY ✅✅✅`, {
+                    ratesCount: jsonResponse.rates.length,
+                    totalTime: totalTime,
+                    shopifyApiTime: shopifyApiTime,
+                    buckyDropTime: buckyDropTime,
+                    processingTime: processingTime,
+                    consolidatedTime: consolidatedTime || 0,
+                    individualTime: individualTime || 0,
+                    responseSize: Buffer.byteLength(compactJson, 'utf8')
+                });
             } else {
                 logger.info(`✅ Response sent: ${jsonResponse.rates.length} rates in ${totalTime}ms`);
+                
+                addProcessingLog(`✅✅✅ RESPONSE SENT SUCCESSFULLY ✅✅✅`, {
+                    ratesCount: jsonResponse.rates.length,
+                    totalTime: totalTime,
+                    responseSize: Buffer.byteLength(compactJson, 'utf8')
+                });
             }
         });
         
         return;
 
     } catch (error) {
+        addProcessingLog(`❌❌❌ CARRIER SERVICE ERROR (OUTER CATCH)`, {
+            error: error.message,
+            stack: error.stack?.substring(0, 1000),
+            name: error.name,
+            code: error.code,
+            shop: req.query.shop || 'unknown',
+            destination: req.body.rate?.destination?.country_code || req.body.rate?.destination?.country || 'unknown'
+        });
         logger.error('❌❌❌ Carrier service error:', error);
         logger.error('❌❌❌ Error message:', error.message);
         logger.error('❌❌❌ Error stack:', error.stack);
@@ -2222,6 +2978,26 @@ router.get('/list-carrier-services', async (req, res) => {
  * GET /api/shipping/last-request-details
  * Get details of the last carrier service request (for debugging)
  */
+router.get('/debug-full', async (req, res) => {
+    res.json({
+        success: true,
+        timestamp: new Date().toISOString(),
+        version: '2026-01-31-v2',
+        lastRequest: lastRequestDetails || null,
+        recentRequests: recentRequests.slice(-5),
+        processingLogs: detailedProcessingLogs.slice(-500), // Last 500 logs for detailed debugging
+        processingLogsCount: detailedProcessingLogs.length, // Debug: show count
+        processingLogsType: typeof detailedProcessingLogs, // Debug: show type
+        systemInfo: {
+            nodeVersion: process.version,
+            platform: process.platform,
+            memoryUsage: process.memoryUsage(),
+            uptime: process.uptime()
+        },
+        message: lastRequestDetails ? 'Last request details found' : 'No requests yet. Make a checkout request to see details here.'
+    });
+});
+
 router.get('/last-request-details', async (req, res) => {
     res.json({
         success: true,
