@@ -1263,6 +1263,13 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         });
 
         // Store last request details for debugging
+        // Identify source: Railway or Local
+        const appUrl = process.env.SHOPIFY_APP_URL || 'http://localhost:3001';
+        const isRailway = appUrl.includes('railway.app') || appUrl.includes('up.railway.app');
+        const requestHost = req.get('host') || req.headers.host || 'unknown';
+        const requestProtocol = req.protocol || (req.secure ? 'https' : 'http');
+        const fullRequestUrl = `${requestProtocol}://${requestHost}${req.originalUrl || req.url}`;
+        
         const requestDetails = {
             timestamp: new Date().toISOString(),
             shop: shopDomain,
@@ -1283,7 +1290,15 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             })),
             isClothing: productInfo.isClothing,
             isBattery: productInfo.isBattery,
-            cached: false
+            cached: false,
+            // Source identification
+            source: {
+                serverType: isRailway ? 'RAILWAY' : 'LOCAL',
+                appUrl: appUrl,
+                requestHost: requestHost,
+                requestUrl: fullRequestUrl,
+                nodeEnv: process.env.NODE_ENV || 'development'
+            }
         };
         
         console.log(`🔍 ABOUT TO SET lastRequestDetails`);
@@ -2099,7 +2114,32 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         // Filter out dominated options (slower AND more expensive than another option)
         logger.info(`  📊 DEBUG: allAvailableRoutes.length = ${allAvailableRoutes.length}`);
         logger.info(`  📊 DEBUG: First few routes: ${JSON.stringify(allAvailableRoutes.slice(0, 3).map(r => ({ name: r.service_name, price: r.priceFinal, days: r.maxDays })), null, 2)}`);
-        
+
+        // FILTERING RULE 0: Never show these services at checkout, for any country
+        // Each entry is matched as an UPPERCASE substring of the BuckyDrop service name,
+        // so naming variants from the live feed are caught too.
+        // To hide another option, add a distinctive word from its name to this list.
+        const excludedServiceNames = [
+            'COSMETICS'  // "Express Cosmetics Registered Special Line" - not relevant to auto parts
+        ];
+
+        let excludedCount = 0;
+        for (let i = allAvailableRoutes.length - 1; i >= 0; i--) {
+            const serviceNameUpper = (allAvailableRoutes[i].service_name || '').toUpperCase();
+            const matchedTerm = excludedServiceNames.find(term => serviceNameUpper.includes(term));
+
+            if (matchedTerm) {
+                logger.info(`    🚫 Excluded route (matches "${matchedTerm}"): ${allAvailableRoutes[i].service_name}`);
+                allAvailableRoutes.splice(i, 1);
+                excludedCount++;
+            }
+        }
+
+        addProcessingLog(`🚫 Excluded ${excludedCount} route(s) by name`, {
+            excludedTerms: excludedServiceNames,
+            remainingRoutes: allAvailableRoutes.length
+        });
+
         // FILTERING RULE 1: Hide "dominated" options
         // Hide option A if option B is BOTH faster (lower maxDays) AND cheaper
         // NOTE: We do NOT hide slow options just because they're slow - cheapest option should always be available
@@ -2979,10 +3019,18 @@ router.get('/list-carrier-services', async (req, res) => {
  * Get details of the last carrier service request (for debugging)
  */
 router.get('/debug-full', async (req, res) => {
+    const appUrl = process.env.SHOPIFY_APP_URL || 'http://localhost:3001';
+    const isRailway = appUrl.includes('railway.app') || appUrl.includes('up.railway.app');
+    
     res.json({
         success: true,
         timestamp: new Date().toISOString(),
         version: '2026-01-31-v2',
+        serverInfo: {
+            serverType: isRailway ? 'RAILWAY' : 'LOCAL',
+            appUrl: appUrl,
+            nodeEnv: process.env.NODE_ENV || 'development'
+        },
         lastRequest: lastRequestDetails || null,
         recentRequests: recentRequests.slice(-5),
         processingLogs: detailedProcessingLogs.slice(-500), // Last 500 logs for detailed debugging
