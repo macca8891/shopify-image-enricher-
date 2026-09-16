@@ -25,6 +25,37 @@ let detailedProcessingLogs = []; // Store processing logs for debug endpoint
 // hidden options are visible instead of silently disappearing.
 let lastFilterAnalysis = {};
 
+/**
+ * Pull the curated per-unit weight (kg) out of a product's metafields.
+ *
+ * The Shopify variant weight is unreliable across this catalogue - some SKUs
+ * carry dimension values in the weight field, and roughly a quarter have no
+ * weight at all - so `custom.weight_raw_kg_` is preferred when it is usable.
+ * The metafield is a free-text field, hence the parsing and range check.
+ *
+ * Returns null when there is no usable value, meaning "fall back to variant".
+ */
+function weightKgFromMetafields(metafields) {
+    if (!Array.isArray(metafields)) return null;
+
+    const match = metafields.find(m =>
+        (m.namespace === 'custom' || !m.namespace) &&
+        ['weight_raw_kg_', 'weight_raw_kg', 'weight_raw'].includes(m.key)
+    );
+    if (!match) return null;
+
+    // Match the number in place rather than stripping characters, so a leading
+    // minus survives to be rejected below instead of silently becoming positive.
+    const numeric = String(match.value).trim().match(/-?\d+(\.\d+)?/);
+    if (!numeric) return null;
+    const parsed = parseFloat(numeric[0]);
+    // Reject blanks, zero, and anything heavier than a pallet - those are data
+    // errors, and quoting on them is worse than using the variant weight.
+    if (!Number.isFinite(parsed) || parsed <= 0 || parsed > 500) return null;
+
+    return parsed;
+}
+
 function addProcessingLog(message, data = null) {
     const logEntry = {
         timestamp: new Date().toISOString(),
@@ -1033,7 +1064,10 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             const productId = item.product_id;
             const quantity = item.quantity || 1;
             const weightGrams = item.grams || 0;
-            const weightKg = (weightGrams / 1000) * quantity;
+            const variantWeightKg = (weightGrams / 1000) * quantity;
+            // Provisional - replaced below by the metafield weight when available.
+            let weightKg = variantWeightKg;
+            let weightSource = 'variant';
             
             // Check for clothing/battery keywords in item name
             const name = (item.name || '').toLowerCase();
@@ -1153,18 +1187,36 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                 logger.info(`  ⚠️ No productId for ${item.name} - cannot lookup metafields`);
             }
             
+            // Prefer the curated weight metafield over the Shopify variant weight.
+            const metafieldWeightKg = weightKgFromMetafields(metafields);
+            if (metafieldWeightKg !== null) {
+                weightKg = metafieldWeightKg * quantity;
+                weightSource = 'metafield';
+            }
+
             addProcessingLog(`📦 Product ${index + 1} data`, {
                 name: item.name,
                 productId: productId,
                 weightKg: weightKg.toFixed(3),
+                weightSource: weightSource,
+                variantWeightKg: variantWeightKg.toFixed(3),
+                metafieldWeightKg: metafieldWeightKg === null ? null : (metafieldWeightKg * quantity).toFixed(3),
                 isClothing: isClothing,
                 isBattery: isBattery,
                 metafieldsCount: metafields.length,
                 dbFound: dbFound
             });
-            
+
+            if (weightSource === 'metafield' && Math.abs(weightKg - variantWeightKg) > 0.01) {
+                logger.info(`  ⚖️ ${item.name}: using metafield weight ${weightKg.toFixed(3)}kg (variant said ${variantWeightKg.toFixed(3)}kg)`);
+            } else if (weightSource === 'variant') {
+                logger.warn(`  ⚖️ ${item.name}: no usable weight_raw_kg_ metafield, falling back to variant weight ${variantWeightKg.toFixed(3)}kg`);
+            }
+
             return {
                 weightKg,
+                weightSource,
+                variantWeightKg,
                 isClothing,
                 isBattery,
                 metafields,
@@ -1289,12 +1341,18 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             },
             quantity: totalQuantity,
             itemsCount: processedItems.length,
-            items: processedItems.map(item => ({
-                name: item.name,
-                quantity: item.quantity,
-                grams: item.grams,
-                weightKg: ((item.grams || 0) / 1000 * (item.quantity || 1)).toFixed(3)
-            })),
+            items: processedItems.map((item, index) => {
+                const resolved = productDataResults[index];
+                return {
+                    name: item.name,
+                    quantity: item.quantity,
+                    grams: item.grams,
+                    // The weight actually quoted on, and where it came from.
+                    weightKg: (resolved ? resolved.weightKg : (item.grams || 0) / 1000 * (item.quantity || 1)).toFixed(3),
+                    weightSource: resolved ? resolved.weightSource : 'variant',
+                    variantWeightKg: resolved ? resolved.variantWeightKg.toFixed(3) : null
+                };
+            }),
             isClothing: productInfo.isClothing,
             isBattery: productInfo.isBattery,
             cached: false,
