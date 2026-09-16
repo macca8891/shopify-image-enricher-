@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Shipping Options Control</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 24px;
+            background: #f5f5f5;
+            color: #202223;
+        }
+        .card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 18px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.1);
+        }
+        h1 { margin: 0 0 6px; font-size: 24px; }
+        .sub { color: #6d7175; font-size: 14px; margin: 0; }
+        .controls { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+        label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 5px; color: #6d7175; text-transform: uppercase; letter-spacing: .4px; }
+        select, input[type=text] {
+            padding: 9px 11px; border: 1px solid #c9cccf; border-radius: 6px; font-size: 14px; background: #fff; min-width: 180px;
+        }
+        button {
+            background: #008060; color: #fff; border: 0; padding: 10px 18px;
+            border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;
+        }
+        button:hover { background: #006e52; }
+        button:disabled { background: #a7b0b5; cursor: not-allowed; }
+        button.secondary { background: #fff; color: #202223; border: 1px solid #c9cccf; }
+        button.secondary:hover { background: #f6f6f7; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th, td { text-align: left; padding: 12px 10px; border-bottom: 1px solid #e1e3e5; font-size: 14px; vertical-align: middle; }
+        th { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: #6d7175; }
+        tr.off td:not(.toggle-cell) { opacity: .5; }
+        .name { font-weight: 600; }
+        .price { font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .muted { color: #6d7175; font-size: 13px; }
+
+        .pill { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+        .pill.live { background: #d3f3e5; color: #0b6b47; }
+        .pill.auto { background: #fff1d6; color: #8a5a00; }
+        .pill.manual { background: #fde3e1; color: #9b2c22; }
+
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; flex: 0 0 44px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; inset: 0; background: #c9cccf; transition: .2s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background: #fff; transition: .2s; border-radius: 50%; }
+        input:checked + .slider { background: #008060; }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        .banner { padding: 12px 14px; border-radius: 8px; font-size: 14px; margin-bottom: 14px; display: none; }
+        .banner.ok { background: #d3f3e5; color: #0b6b47; }
+        .banner.err { background: #fde3e1; color: #9b2c22; }
+        .banner.info { background: #e3f1fb; color: #14608f; }
+
+        .summary { display: flex; gap: 26px; flex-wrap: wrap; margin-top: 4px; }
+        .summary div { font-size: 13px; color: #6d7175; }
+        .summary strong { display: block; font-size: 21px; color: #202223; font-variant-numeric: tabular-nums; }
+        .footnote { font-size: 12px; color: #6d7175; margin-top: 14px; line-height: 1.5; }
+        .spinner { display: none; font-size: 14px; color: #6d7175; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Shipping Options Control</h1>
+        <p class="sub">Every route BuckyDrop offers, what reaches checkout, and why the rest do not.</p>
+    </div>
+
+    <div class="card">
+        <div class="controls">
+            <div>
+                <label for="shop">Shop</label>
+                <input type="text" id="shop" value="spare-part-mart.myshopify.com" style="min-width:260px">
+            </div>
+            <div>
+                <label for="country">Destination</label>
+                <select id="country">
+                    <option value="AU" data-postal="3195" data-province="VIC" selected>Australia</option>
+                    <option value="US" data-postal="10001" data-province="NY">United States</option>
+                    <option value="GB" data-postal="SW1A 1AA" data-province="">United Kingdom</option>
+                    <option value="NZ" data-postal="1010" data-province="AUK">New Zealand</option>
+                    <option value="CA" data-postal="M5V 2T6" data-province="ON">Canada</option>
+                    <option value="DE" data-postal="10115" data-province="">Germany</option>
+                </select>
+            </div>
+            <div>
+                <label for="grams">Weight (g)</label>
+                <input type="text" id="grams" value="500" style="min-width:110px">
+            </div>
+            <button id="probeBtn" onclick="probe()">Fetch live options</button>
+            <span class="spinner" id="spinner">Querying BuckyDrop…</span>
+        </div>
+
+        <div class="footnote">
+            <label style="display:inline-flex;align-items:center;gap:9px;text-transform:none;font-size:13px;letter-spacing:0;color:#202223;cursor:pointer;margin-top:14px">
+                <span class="switch">
+                    <input type="checkbox" id="autoFilters" onchange="saveSettings()">
+                    <span class="slider"></span>
+                </span>
+                <span><strong>Automatic filtering rules</strong> — when on, the app hides options it judges redundant (dominated, duplicate price, similar delivery time, within 10% of a faster option, duplicate carrier). Turn off to show customers every route.</span>
+            </label>
+        </div>
+    </div>
+
+    <div id="banner" class="banner"></div>
+
+    <div class="card" id="resultsCard" style="display:none">
+        <div class="summary" id="summary"></div>
+        <table style="margin-top:18px">
+            <thead>
+                <tr>
+                    <th style="width:70px">Show</th>
+                    <th>Service</th>
+                    <th style="width:130px">Price at checkout</th>
+                    <th style="width:120px">Delivery</th>
+                    <th style="width:290px">Status</th>
+                </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+        </table>
+        <p class="footnote">
+            Prices include your 13% buffer and are shown in CNY as BuckyDrop returns them — Shopify converts to the
+            customer's currency at checkout, so the figure they see will differ.
+            Turning a service off hides it in every country, matching on the highlighted word in its name.
+        </p>
+    </div>
+
+<script>
+let settings = { disabledServices: [], forcedServices: [], autoFiltersEnabled: true };
+let currentRoutes = [];
+
+const $ = id => document.getElementById(id);
+const shopName = () => $('shop').value.trim();
+
+function banner(msg, kind) {
+    const el = $('banner');
+    el.textContent = msg;
+    el.className = 'banner ' + kind;
+    el.style.display = 'block';
+    if (kind === 'ok') setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+// A term matches a service when it appears anywhere in the service name.
+function matchedIn(list, serviceName) {
+    const upper = serviceName.toUpperCase();
+    return list.find(term => upper.includes(term)) || null;
+}
+const disabledTerm = name => matchedIn(settings.disabledServices, name);
+const forcedTerm = name => matchedIn(settings.forcedServices, name);
+
+async function loadSettings() {
+    try {
+        const res = await fetch(`/api/shipping/option-settings?shop=${encodeURIComponent(shopName())}`);
+        const data = await res.json();
+        if (data.success) {
+            settings.disabledServices = data.disabledServices || [];
+            settings.forcedServices = data.forcedServices || [];
+            settings.autoFiltersEnabled = data.autoFiltersEnabled !== false;
+            $('autoFilters').checked = settings.autoFiltersEnabled;
+        }
+    } catch (err) {
+        banner('Could not load saved settings: ' + err.message, 'err');
+    }
+}
+
+async function saveSettings() {
+    settings.autoFiltersEnabled = $('autoFilters').checked;
+    try {
+        const res = await fetch('/api/shipping/option-settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                shop: shopName(),
+                disabledServices: settings.disabledServices,
+                forcedServices: settings.forcedServices,
+                autoFiltersEnabled: settings.autoFiltersEnabled
+            })
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Save failed');
+        settings.disabledServices = data.disabledServices || [];
+        settings.forcedServices = data.forcedServices || [];
+        banner('Saved — live at checkout now.', 'ok');
+        render();
+    } catch (err) {
+        banner('Save failed: ' + err.message, 'err');
+    }
+}
+
+// Toggling stores the full service name as the match term, which is the least
+// surprising default. A route can be hidden (disabledServices) or force-shown
+// past the automatic rules (forcedServices); switching one clears the other.
+function toggleService(serviceName, show, wasAutoHidden) {
+    const upper = serviceName.toUpperCase();
+    settings.disabledServices = settings.disabledServices.filter(t => t !== disabledTerm(serviceName));
+    settings.forcedServices = settings.forcedServices.filter(t => t !== forcedTerm(serviceName));
+
+    if (show && wasAutoHidden) {
+        // Only needs forcing when an automatic rule was the thing hiding it.
+        settings.forcedServices.push(upper);
+    } else if (!show) {
+        settings.disabledServices.push(upper);
+    }
+
+    saveSettings();
+}
+
+async function probe() {
+    const opt = $('country').selectedOptions[0];
+    $('probeBtn').disabled = true;
+    $('spinner').style.display = 'inline';
+    $('banner').style.display = 'none';
+
+    try {
+        const res = await fetch('/api/shipping/probe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                shop: shopName(),
+                country: opt.value,
+                postalCode: opt.dataset.postal,
+                province: opt.dataset.province,
+                grams: parseInt($('grams').value, 10) || 500
+            })
+        });
+        const data = await res.json();
+
+        if (!data.success) {
+            banner(data.message || data.error || 'Probe failed', 'err');
+            $('resultsCard').style.display = 'none';
+            return;
+        }
+
+        currentRoutes = data.analysis.routes;
+        render();
+        $('resultsCard').style.display = 'block';
+    } catch (err) {
+        banner('Probe failed: ' + err.message, 'err');
+    } finally {
+        $('probeBtn').disabled = false;
+        $('spinner').style.display = 'none';
+    }
+}
+
+function render() {
+    const rows = $('rows');
+    rows.innerHTML = '';
+
+    let visible = 0, autoHidden = 0, manualHidden = 0;
+
+    currentRoutes.forEach(route => {
+        const offTerm = disabledTerm(route.service_name);
+        const onTerm = forcedTerm(route.service_name);
+        const isManuallyOff = !!offTerm;
+        // Manual choices are applied before and after the automatic rules, so
+        // they always win over what the rules decided.
+        const isVisible = !isManuallyOff && (route.visible || !!onTerm);
+        // Whether an automatic rule is the only thing keeping it out.
+        const autoWouldHide = !isManuallyOff && !route.visible;
+
+        if (isVisible) visible++;
+        else if (isManuallyOff) manualHidden++;
+        else autoHidden++;
+
+        let status;
+        if (isManuallyOff) {
+            status = `<span class="pill manual">Turned off</span> <span class="muted">matched “${offTerm}”</span>`;
+        } else if (onTerm || route.forced) {
+            status = `<span class="pill live">At checkout</span> <span class="muted">forced past the auto-rules</span>`;
+        } else if (isVisible) {
+            status = '<span class="pill live">At checkout</span>';
+        } else {
+            status = `<span class="pill auto">Auto-hidden</span><br><span class="muted">${route.hiddenBy || 'Removed by deduplication'}</span>`;
+        }
+
+        const tr = document.createElement('tr');
+        if (!isVisible) tr.className = 'off';
+        tr.innerHTML = `
+            <td class="toggle-cell">
+                <span class="switch">
+                    <input type="checkbox" ${isVisible ? 'checked' : ''}>
+                    <span class="slider"></span>
+                </span>
+            </td>
+            <td class="name">${route.service_name}</td>
+            <td class="price">¥${route.priceWithBuffer.toFixed(2)}</td>
+            <td class="muted">${route.minDays}–${route.maxDays} days</td>
+            <td>${status}</td>
+        `;
+
+        const input = tr.querySelector('input');
+        input.addEventListener('change', e => toggleService(route.service_name, e.target.checked, autoWouldHide));
+        rows.appendChild(tr);
+    });
+
+    $('summary').innerHTML = `
+        <div><strong>${currentRoutes.length}</strong>services offered</div>
+        <div><strong>${visible}</strong>shown at checkout</div>
+        <div><strong>${autoHidden}</strong>hidden by auto-rules</div>
+        <div><strong>${manualHidden}</strong>turned off by you</div>
+    `;
+
+    if (autoHidden > 0 && settings.autoFiltersEnabled) {
+        banner(`${autoHidden} option${autoHidden === 1 ? '' : 's'} hidden by the automatic rules. Switch those rules off above to show every route.`, 'info');
+    }
+}
+
+loadSettings();
+</script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 const express = require('express');
 const Product = require('../models/Product');
 const Shop = require('../models/Shop');
+const ShippingOptionSettings = require('../models/ShippingOptionSettings');
 const logger = require('../utils/logger');
 const ShippingService = require('../services/ShippingService');
 const BuckyDropService = require('../services/BuckyDropService');
@@ -17,6 +18,12 @@ let lastRequestDetails = null;
 let recentRequests = []; // Store last 10 requests
 const MAX_RECENT_REQUESTS = 10;
 let detailedProcessingLogs = []; // Store processing logs for debug endpoint
+
+// Snapshot of the most recent filtering pass, keyed by destination country.
+// Powers the shipping options admin page (public/shipping-options.html): it
+// records every raw route BuckyDrop returned and which rule removed it, so
+// hidden options are visible instead of silently disappearing.
+let lastFilterAnalysis = {};
 
 function addProcessingLog(message, data = null) {
     const logEntry = {
@@ -2115,28 +2122,37 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         logger.info(`  📊 DEBUG: allAvailableRoutes.length = ${allAvailableRoutes.length}`);
         logger.info(`  📊 DEBUG: First few routes: ${JSON.stringify(allAvailableRoutes.slice(0, 3).map(r => ({ name: r.service_name, price: r.priceFinal, days: r.maxDays })), null, 2)}`);
 
-        // FILTERING RULE 0: Never show these services at checkout, for any country
-        // Each entry is matched as an UPPERCASE substring of the BuckyDrop service name,
-        // so naming variants from the live feed are caught too.
-        // To hide another option, add a distinctive word from its name to this list.
-        const excludedServiceNames = [
-            'COSMETICS'  // "Express Cosmetics Registered Special Line" - not relevant to auto parts
-        ];
+        // Snapshot every raw route before any filtering, so the admin page can
+        // show what BuckyDrop actually offered - not just what survived.
+        const rawRoutesSnapshot = allAvailableRoutes.map(r => ({
+            service_name: r.service_name,
+            priceFinal: r.priceFinal,
+            minDays: r.minDays,
+            maxDays: r.maxDays
+        }));
 
-        let excludedCount = 0;
+        // FILTERING RULE 0: Manually disabled services (managed from the admin page)
+        // Each entry is matched as an UPPERCASE substring of the BuckyDrop service
+        // name, so naming variants from the live feed are caught too.
+        const optionSettings = await ShippingOptionSettings.forShop(shopDomain);
+        const excludedServiceNames = (optionSettings.disabledServices || []).map(t => t.toUpperCase());
+        const autoFiltersEnabled = optionSettings.autoFiltersEnabled !== false;
+
+        const manuallyDisabled = {}; // service_name -> matched term
         for (let i = allAvailableRoutes.length - 1; i >= 0; i--) {
             const serviceNameUpper = (allAvailableRoutes[i].service_name || '').toUpperCase();
             const matchedTerm = excludedServiceNames.find(term => serviceNameUpper.includes(term));
 
             if (matchedTerm) {
                 logger.info(`    🚫 Excluded route (matches "${matchedTerm}"): ${allAvailableRoutes[i].service_name}`);
+                manuallyDisabled[allAvailableRoutes[i].service_name] = matchedTerm;
                 allAvailableRoutes.splice(i, 1);
-                excludedCount++;
             }
         }
 
-        addProcessingLog(`🚫 Excluded ${excludedCount} route(s) by name`, {
+        addProcessingLog(`🚫 Excluded ${Object.keys(manuallyDisabled).length} route(s) by name`, {
             excludedTerms: excludedServiceNames,
+            autoFiltersEnabled: autoFiltersEnabled,
             remainingRoutes: allAvailableRoutes.length
         });
 
@@ -2482,7 +2498,105 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             finalDeduplicatedRoutes.push(route);
         }
         
-        const uniqueRoutes = finalDeduplicatedRoutes; // Return deduplicated routes
+        // When auto-filters are switched off from the admin page, bypass rules 1-5
+        // and quote every route that survived the manual exclusion list. Raw routes
+        // already carry unique service_codes, so Shopify will not collapse them.
+        const uniqueRoutes = [...(autoFiltersEnabled ? finalDeduplicatedRoutes : allAvailableRoutes)];
+
+        // Put back any service the merchant force-enabled that the rules removed.
+        const forcedServiceNames = (optionSettings.forcedServices || []).map(t => t.toUpperCase());
+        const forcedBack = new Set();
+        if (forcedServiceNames.length > 0) {
+            const alreadyQuoted = new Set(uniqueRoutes.map(r => r.service_name));
+            for (const route of allAvailableRoutes) {
+                if (alreadyQuoted.has(route.service_name)) continue;
+                const upper = (route.service_name || '').toUpperCase();
+                if (forcedServiceNames.some(term => upper.includes(term))) {
+                    uniqueRoutes.push(route);
+                    alreadyQuoted.add(route.service_name);
+                    forcedBack.add(route.service_name);
+                    logger.info(`    ➕ Force-enabled route: ${route.service_name}`);
+                }
+            }
+        }
+
+        // Work out why each raw route did or did not reach checkout, and stash it
+        // for the admin page. Each stage is checked in pipeline order so the first
+        // stage that dropped a route is the one reported.
+        try {
+            const survivedFinal = new Set(uniqueRoutes.map(r => r.service_name));
+            const stages = autoFiltersEnabled ? [
+                { names: new Set(filteredRoutes.map(r => r.service_name)), rule: 'Rule 1 - dominated (another option is both faster and cheaper)' },
+                { names: new Set(priceDeduplicatedRoutes.map(r => r.service_name)), rule: 'Rule 2 - duplicate price (a cheaper or faster option shares this price)' },
+                { names: new Set(timeDeduplicatedRoutes.map(r => r.service_name)), rule: 'Rule 3 - similar delivery time (a cheaper option arrives just as fast)' },
+                { names: new Set(priceProximityFilteredRoutes.map(r => r.service_name)), rule: 'Rule 4 - within 10% of a faster option' },
+                { names: new Set(deduplicatedRoutes.map(r => r.service_name)), rule: 'Rule 5 - duplicate carrier (cheapest kept per carrier)' }
+            ] : [];
+
+            const analysedRoutes = rawRoutesSnapshot.map(raw => {
+                const entry = {
+                    service_name: raw.service_name,
+                    priceCNY: Number(raw.priceFinal.toFixed(2)),
+                    priceWithBuffer: Number((raw.priceFinal * 1.13).toFixed(2)),
+                    minDays: raw.minDays,
+                    maxDays: raw.maxDays,
+                    visible: survivedFinal.has(raw.service_name),
+                    hiddenBy: null
+                };
+
+                if (manuallyDisabled[raw.service_name]) {
+                    entry.hiddenBy = `Turned off by you (matched "${manuallyDisabled[raw.service_name]}")`;
+                    entry.manuallyDisabled = true;
+                } else if (forcedBack.has(raw.service_name)) {
+                    entry.forced = true;
+                } else if (!entry.visible) {
+                    const killedAt = stages.find(stage => !stage.names.has(raw.service_name));
+                    entry.hiddenBy = killedAt ? killedAt.rule : 'Removed by final deduplication';
+                }
+
+                return entry;
+            });
+
+            // BuckyDrop returns each service twice (consolidated and individual),
+            // and Shopify collapses them by name anyway. Show one row per service:
+            // keep the cheapest instance, and treat it as visible if any instance was.
+            const byName = new Map();
+            for (const route of analysedRoutes) {
+                const existing = byName.get(route.service_name);
+                if (!existing) {
+                    byName.set(route.service_name, { ...route, duplicateCount: 1 });
+                    continue;
+                }
+                existing.duplicateCount++;
+                existing.visible = existing.visible || route.visible;
+                existing.forced = existing.forced || route.forced;
+                if (route.priceCNY < existing.priceCNY) {
+                    existing.priceCNY = route.priceCNY;
+                    existing.priceWithBuffer = route.priceWithBuffer;
+                    existing.minDays = route.minDays;
+                    existing.maxDays = route.maxDays;
+                }
+                if (existing.visible) existing.hiddenBy = null;
+            }
+            const uniqueAnalysed = [...byName.values()].sort((a, b) => a.priceCNY - b.priceCNY);
+
+            const destinationCode = rateData?.destination?.country_code || rateData?.destination?.country || 'unknown';
+            lastFilterAnalysis[destinationCode] = {
+                timestamp: new Date().toISOString(),
+                shop: shopDomain,
+                destination: destinationCode,
+                autoFiltersEnabled: autoFiltersEnabled,
+                disabledServices: excludedServiceNames,
+                totalRawRoutes: rawRoutesSnapshot.length,
+                uniqueServiceCount: uniqueAnalysed.length,
+                visibleCount: uniqueAnalysed.filter(r => r.visible).length,
+                routes: uniqueAnalysed
+            };
+        } catch (analysisError) {
+            // Never let the admin instrumentation break a live rate quote
+            logger.warn(`Filter analysis failed (rates unaffected): ${analysisError.message}`);
+        }
+
         logger.info(`  ✓ Found ${allAvailableRoutes.length} total routes, ${filteredRoutes.length} non-dominated routes, ${priceDeduplicatedRoutes.length} after price deduplication, ${timeDeduplicatedRoutes.length} after time deduplication, ${priceProximityFilteredRoutes.length} after price proximity filter, ${deduplicatedRoutes.length} after carrier deduplication, returning all ${uniqueRoutes.length} options`);
         logger.info(`  📊 DEBUG: Routes being returned: ${JSON.stringify(uniqueRoutes.map(r => ({ name: r.service_name, price: r.priceFinal, code: r.service_code })), null, 2)}`);
         
@@ -3011,6 +3125,157 @@ router.get('/list-carrier-services', async (req, res) => {
             error: 'Failed to list carrier services', 
             details: error.message 
         });
+    }
+});
+
+/**
+ * GET /api/shipping/option-settings?shop=...
+ * Current manual exclusions and auto-filter state for a shop.
+ */
+router.get('/option-settings', async (req, res) => {
+    try {
+        const shop = req.query.shop;
+        if (!shop) {
+            return res.status(400).json({ error: 'Shop domain required' });
+        }
+
+        const settings = await ShippingOptionSettings.forShop(shop);
+        res.json({
+            success: true,
+            shop: shop,
+            disabledServices: settings.disabledServices || [],
+            forcedServices: settings.forcedServices || [],
+            autoFiltersEnabled: settings.autoFiltersEnabled !== false
+        });
+    } catch (error) {
+        logger.error('Get option settings error:', error);
+        res.status(500).json({ error: 'Failed to load settings', details: error.message });
+    }
+});
+
+/**
+ * POST /api/shipping/option-settings
+ * Save which services are hidden, and whether the automatic rules run.
+ * Body: { shop, disabledServices: [String], autoFiltersEnabled: Boolean }
+ */
+router.post('/option-settings', express.json(), async (req, res) => {
+    try {
+        const { shop, disabledServices, forcedServices, autoFiltersEnabled } = req.body;
+        if (!shop) {
+            return res.status(400).json({ error: 'Shop domain required' });
+        }
+
+        const clean = list => Array.isArray(list)
+            ? [...new Set(list.map(s => String(s).trim().toUpperCase()).filter(Boolean))]
+            : [];
+
+        const cleanedDisabled = clean(disabledServices);
+        // A service cannot be both hidden and force-shown; hiding wins.
+        const cleanedForced = clean(forcedServices).filter(term => !cleanedDisabled.includes(term));
+
+        const saved = await ShippingOptionSettings.findOneAndUpdate(
+            { shop },
+            {
+                shop,
+                disabledServices: cleanedDisabled,
+                forcedServices: cleanedForced,
+                autoFiltersEnabled: autoFiltersEnabled !== false,
+                updatedAt: new Date()
+            },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+        ).lean();
+
+        logger.info(`💾 Shipping option settings saved for ${shop}: ${cleanedDisabled.length} disabled, ${cleanedForced.length} forced, autoFilters=${saved.autoFiltersEnabled}`);
+
+        res.json({
+            success: true,
+            disabledServices: saved.disabledServices,
+            forcedServices: saved.forcedServices,
+            autoFiltersEnabled: saved.autoFiltersEnabled
+        });
+    } catch (error) {
+        logger.error('Save option settings error:', error);
+        res.status(500).json({ error: 'Failed to save settings', details: error.message });
+    }
+});
+
+/**
+ * GET /api/shipping/options-analysis?country=US
+ * The last filtering pass: every raw BuckyDrop route and why it was hidden.
+ * Omit `country` to get every destination seen since the last restart.
+ */
+router.get('/options-analysis', (req, res) => {
+    const country = req.query.country;
+
+    if (country) {
+        const analysis = lastFilterAnalysis[country.toUpperCase()];
+        if (!analysis) {
+            return res.json({
+                success: false,
+                message: `No rate request seen for ${country.toUpperCase()} yet. Run a probe first.`
+            });
+        }
+        return res.json({ success: true, analysis });
+    }
+
+    res.json({
+        success: true,
+        countries: Object.keys(lastFilterAnalysis),
+        analyses: lastFilterAnalysis
+    });
+});
+
+/**
+ * POST /api/shipping/probe
+ * Fire a real rate request at our own carrier service so the admin page can
+ * refresh the analysis on demand, without waiting for a live checkout.
+ * Body: { shop, country, postalCode, province, grams }
+ */
+router.post('/probe', express.json(), async (req, res) => {
+    try {
+        const { shop, country = 'AU', postalCode = '3195', province = 'VIC', grams = 500 } = req.body;
+        if (!shop) {
+            return res.status(400).json({ error: 'Shop domain required' });
+        }
+
+        const port = process.env.PORT || 3001;
+        const selfUrl = `http://127.0.0.1:${port}/api/shipping/carrier-service?shop=${encodeURIComponent(shop)}`;
+
+        logger.info(`🔎 Probing rates for ${shop} → ${country}`);
+
+        await axios.post(selfUrl, {
+            rate: {
+                origin: { country: 'CN', postal_code: '518000' },
+                destination: {
+                    country: country.toUpperCase(),
+                    country_code: country.toUpperCase(),
+                    postal_code: postalCode,
+                    province: province
+                },
+                items: [{
+                    name: 'Probe item',
+                    quantity: 1,
+                    grams: Number(grams) || 500,
+                    price: 2500,
+                    requires_shipping: true,
+                    sku: 'ADMIN-PROBE'
+                }],
+                currency: 'AUD'
+            }
+        }, { timeout: 60000 });
+
+        const analysis = lastFilterAnalysis[country.toUpperCase()];
+        if (!analysis) {
+            return res.json({
+                success: false,
+                message: 'Probe completed but returned no routes. BuckyDrop may not ship to this destination.'
+            });
+        }
+
+        res.json({ success: true, analysis });
+    } catch (error) {
+        logger.error('Probe error:', error);
+        res.status(500).json({ error: 'Probe failed', details: error.message });
     }
 });
 
