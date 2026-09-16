@@ -3187,6 +3187,127 @@ router.get('/list-carrier-services', async (req, res) => {
 });
 
 /**
+ * GET /api/shipping/weight-audit?shop=...&maxPages=20&cursor=...
+ * Read-only survey comparing each product's variant weight against its
+ * custom.weight_raw_kg_ metafield, to size up how much of the catalogue
+ * would quote on a bad weight. Diagnostic only.
+ */
+router.get('/weight-audit', async (req, res) => {
+    try {
+        const { shop, cursor } = req.query;
+        const maxPages = Math.min(parseInt(req.query.maxPages, 10) || 10, 80);
+        if (!shop) return res.status(400).json({ error: 'shop is required' });
+
+        const shopData = await Shop.findOne({ domain: shop });
+        if (!shopData || !shopData.accessToken) {
+            return res.status(404).json({ error: `No stored access token for ${shop}` });
+        }
+
+        const query = `
+            query auditWeights($cursor: String) {
+                products(first: 50, after: $cursor) {
+                    pageInfo { hasNextPage endCursor }
+                    edges {
+                        node {
+                            id
+                            title
+                            metafield(namespace: "custom", key: "weight_raw_kg_") { value }
+                            variants(first: 1) {
+                                edges { node { sku inventoryItem { measurement { weight { value unit } } } } }
+                            }
+                        }
+                    }
+                }
+            }
+        `;
+
+        const stats = {
+            scanned: 0,
+            metafieldPresent: 0,
+            metafieldUsable: 0,
+            metafieldMissingOrUnusable: 0,
+            variantMissing: 0,
+            agree: 0,
+            disagree: 0
+        };
+        const worst = [];
+        let next = cursor || null;
+        let pages = 0;
+
+        while (pages < maxPages) {
+            const response = await fetch(`https://${shop}/admin/api/2024-01/graphql.json`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Shopify-Access-Token': shopData.accessToken
+                },
+                body: JSON.stringify({ query, variables: { cursor: next } })
+            });
+
+            const result = await response.json();
+            if (result.errors) {
+                return res.status(502).json({ error: 'Shopify GraphQL error', details: result.errors, statsSoFar: stats });
+            }
+
+            const products = result.data.products;
+            for (const edge of products.edges) {
+                const node = edge.node;
+                stats.scanned++;
+
+                const metaRaw = node.metafield ? node.metafield.value : null;
+                const metaKg = weightKgFromMetafields(
+                    metaRaw === null ? [] : [{ namespace: 'custom', key: 'weight_raw_kg_', value: metaRaw }]
+                );
+                if (metaRaw !== null) stats.metafieldPresent++;
+                if (metaKg !== null) stats.metafieldUsable++;
+                else stats.metafieldMissingOrUnusable++;
+
+                const v = node.variants.edges[0] && node.variants.edges[0].node;
+                const w = v && v.inventoryItem && v.inventoryItem.measurement && v.inventoryItem.measurement.weight;
+                let variantKg = w ? Number(w.value) : 0;
+                if (w && w.unit === 'GRAMS') variantKg = variantKg / 1000;
+                else if (w && w.unit === 'POUNDS') variantKg = variantKg * 0.453592;
+                else if (w && w.unit === 'OUNCES') variantKg = variantKg * 0.0283495;
+                if (!variantKg) stats.variantMissing++;
+
+                if (metaKg !== null && variantKg > 0) {
+                    const ratio = variantKg / metaKg;
+                    if (ratio > 1.2 || ratio < 0.8) {
+                        stats.disagree++;
+                        worst.push({
+                            sku: v ? v.sku : null,
+                            title: (node.title || '').slice(0, 60),
+                            metafieldKg: metaKg,
+                            variantKg: Number(variantKg.toFixed(3)),
+                            ratio: Number(ratio.toFixed(1))
+                        });
+                    } else {
+                        stats.agree++;
+                    }
+                }
+            }
+
+            pages++;
+            if (!products.pageInfo.hasNextPage) { next = null; break; }
+            next = products.pageInfo.endCursor;
+        }
+
+        worst.sort((a, b) => b.ratio - a.ratio);
+
+        res.json({
+            success: true,
+            stats,
+            pagesScanned: pages,
+            nextCursor: next,
+            worstOffenders: worst.slice(0, 25)
+        });
+    } catch (error) {
+        logger.error('weight-audit error:', error);
+        res.status(500).json({ error: 'Audit failed', details: error.message });
+    }
+});
+
+/**
  * GET /api/shipping/product-metafields?shop=...&productId=...
  * Read-only: dump a product's live Shopify metafields plus its variant weights,
  * so weight sources can be compared side by side. Diagnostic only.
