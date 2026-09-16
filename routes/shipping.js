@@ -3129,6 +3129,86 @@ router.get('/list-carrier-services', async (req, res) => {
 });
 
 /**
+ * GET /api/shipping/product-metafields?shop=...&productId=...
+ * Read-only: dump a product's live Shopify metafields plus its variant weights,
+ * so weight sources can be compared side by side. Diagnostic only.
+ */
+router.get('/product-metafields', async (req, res) => {
+    try {
+        const { shop, productId } = req.query;
+        if (!shop || !productId) {
+            return res.status(400).json({ error: 'shop and productId are required' });
+        }
+
+        const shopData = await Shop.findOne({ domain: shop });
+        if (!shopData || !shopData.accessToken) {
+            return res.status(404).json({ error: `No stored access token for ${shop}` });
+        }
+
+        const gid = String(productId).startsWith('gid://')
+            ? productId
+            : `gid://shopify/Product/${productId}`;
+
+        const query = `
+            query productWeights($id: ID!) {
+                product(id: $id) {
+                    id
+                    title
+                    metafields(first: 100) {
+                        edges { node { namespace key value type } }
+                    }
+                    variants(first: 10) {
+                        edges { node { id sku inventoryItem { measurement { weight { value unit } } } } }
+                    }
+                }
+            }
+        `;
+
+        const response = await fetch(`https://${shop}/admin/api/2024-01/graphql.json`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Shopify-Access-Token': shopData.accessToken
+            },
+            body: JSON.stringify({ query, variables: { id: gid } })
+        });
+
+        const result = await response.json();
+        if (result.errors) {
+            return res.status(502).json({ error: 'Shopify GraphQL error', details: result.errors });
+        }
+
+        const product = result.data && result.data.product;
+        if (!product) {
+            return res.status(404).json({ error: `Product ${productId} not found` });
+        }
+
+        const metafields = product.metafields.edges.map(e => ({
+            namespace: e.node.namespace,
+            key: e.node.key,
+            value: e.node.value,
+            type: e.node.type
+        }));
+
+        res.json({
+            success: true,
+            title: product.title,
+            variants: product.variants.edges.map(e => ({
+                id: e.node.id,
+                sku: e.node.sku,
+                weight: e.node.inventoryItem?.measurement?.weight || null
+            })),
+            weightLikeMetafields: metafields.filter(m => /weight|mass/i.test(m.key)),
+            metafieldCount: metafields.length,
+            metafields
+        });
+    } catch (error) {
+        logger.error('product-metafields error:', error);
+        res.status(500).json({ error: 'Failed to read metafields', details: error.message });
+    }
+});
+
+/**
  * GET /api/shipping/option-settings?shop=...
  * Current manual exclusions and auto-filter state for a shop.
  */
