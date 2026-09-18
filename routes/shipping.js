@@ -3199,6 +3199,218 @@ router.get('/list-carrier-services', async (req, res) => {
     }
 });
 
+// ---------------------------------------------------------------------------
+// Country coverage sweep
+//
+// Walks every country the shop sells to, asks our own carrier service for a
+// quote, and for anything that comes back empty re-tests it directly against
+// BuckyDrop under alternative country-name spellings. That separates "we are
+// sending a name BuckyDrop does not recognise" (a bug we can fix, as with
+// Singapore) from "BuckyDrop genuinely does not ship there" (expected).
+// ---------------------------------------------------------------------------
+
+let coverageRun = null; // { startedAt, finishedAt, total, done, results: [], running }
+
+// Postcode/province fixtures for destinations where a plausible address helps.
+// Anything not listed is tested with an empty postcode, which BuckyDrop accepts.
+const COVERAGE_FIXTURES = {
+    AU: { postcode: '3195', province: 'VIC' }, US: { postcode: '10001', province: 'NY' },
+    GB: { postcode: 'SW1A 1AA' }, NZ: { postcode: '1010', province: 'AUK' },
+    CA: { postcode: 'M5V 2T6', province: 'ON' }, SG: { postcode: '018956' },
+    DE: { postcode: '10115' }, FR: { postcode: '75001' }, IT: { postcode: '00118' },
+    ES: { postcode: '28001' }, NL: { postcode: '1011' }, BE: { postcode: '1000' },
+    IE: { postcode: 'D01 F5P2' }, SE: { postcode: '111 20' }, NO: { postcode: '0150' },
+    DK: { postcode: '1050' }, FI: { postcode: '00100' }, PL: { postcode: '00-001' },
+    AT: { postcode: '1010' }, CH: { postcode: '8001' }, PT: { postcode: '1100-148' },
+    JP: { postcode: '100-0001' }, KR: { postcode: '04524' }, CN: { postcode: '100000' },
+    HK: { postcode: '999077' }, TW: { postcode: '100' }, MY: { postcode: '50000' },
+    TH: { postcode: '10100' }, ID: { postcode: '10110' }, PH: { postcode: '1000' },
+    VN: { postcode: '100000' }, IN: { postcode: '110001' }, AE: { postcode: '00000' },
+    SA: { postcode: '11564' }, ZA: { postcode: '2000' }, BR: { postcode: '01310-100' },
+    MX: { postcode: '06000' }, AR: { postcode: 'C1001' }, CL: { postcode: '8320000' },
+    IL: { postcode: '6100000' }, TR: { postcode: '34010' }, RU: { postcode: '101000' },
+    GR: { postcode: '10431' }, CZ: { postcode: '110 00' }, HU: { postcode: '1011' },
+    RO: { postcode: '010011' }, UA: { postcode: '01001' }
+};
+
+/**
+ * Candidate country-name spellings to try against BuckyDrop when our normal
+ * name yields nothing. Ordered cheapest-to-weirdest.
+ */
+function countryNameCandidates(name, code) {
+    const out = [name, name.toUpperCase(), code];
+    // Common alternate forms BuckyDrop is known to use
+    const alt = {
+        US: ['USA', 'UNITED STATES'], GB: ['UNITED KINGDOM', 'UK', 'Great Britain'],
+        KR: ['SOUTH KOREA', 'KOREA'], RU: ['RUSSIA', 'RUSSIAN FEDERATION'],
+        VN: ['VIETNAM', 'VIET NAM'], TW: ['TAIWAN', 'TAIWAN, CHINA'],
+        HK: ['HONG KONG', 'HONGKONG'], MO: ['MACAO', 'MACAU'],
+        CZ: ['CZECH REPUBLIC', 'CZECHIA'], AE: ['UNITED ARAB EMIRATES', 'UAE']
+    };
+    if (alt[code]) out.push(...alt[code]);
+    return [...new Set(out.filter(Boolean))];
+}
+
+/**
+ * POST /api/shipping/coverage-run
+ * Kick off the sweep in the background. Returns immediately.
+ */
+router.post('/coverage-run', express.json(), async (req, res) => {
+    const shop = (req.body && req.body.shop) || req.query.shop;
+    if (!shop) return res.status(400).json({ error: 'shop is required' });
+
+    if (coverageRun && coverageRun.running) {
+        return res.json({ success: true, message: 'Sweep already running', status: coverageSummary() });
+    }
+
+    const shopData = await Shop.findOne({ domain: shop });
+    if (!shopData || !shopData.accessToken) {
+        return res.status(404).json({ error: `No stored access token for ${shop}` });
+    }
+
+    const zonesResp = await fetch(`https://${shop}/admin/api/2024-01/shipping_zones.json`, {
+        headers: { 'X-Shopify-Access-Token': shopData.accessToken }
+    });
+    const zonesData = await zonesResp.json();
+    const countries = new Map();
+    for (const zone of zonesData.shipping_zones || []) {
+        for (const c of zone.countries || []) countries.set(c.code, c.name);
+    }
+    const list = [...countries.entries()].map(([code, name]) => ({ code, name })).sort((a, b) => a.code.localeCompare(b.code));
+
+    coverageRun = {
+        shop,
+        startedAt: new Date().toISOString(),
+        finishedAt: null,
+        running: true,
+        total: list.length,
+        done: 0,
+        results: []
+    };
+
+    res.json({ success: true, message: `Sweep started for ${list.length} countries`, total: list.length });
+
+    // Run after responding - this takes many minutes.
+    runCoverageSweep(shop, list).catch(err => {
+        logger.error('Coverage sweep failed:', err);
+        if (coverageRun) { coverageRun.running = false; coverageRun.error = err.message; }
+    });
+});
+
+async function runCoverageSweep(shop, list) {
+    const { getCountryMapping } = require('../utils/countryMapping');
+    const port = process.env.PORT || 3001;
+    const selfUrl = `http://127.0.0.1:${port}/api/shipping/carrier-service?shop=${encodeURIComponent(shop)}`;
+
+    const buckyConfig = {
+        APPCODE: process.env.BUCKY_DROP_APPCODE || 'ae75dfea63cc39f6efe052af4a8b9dea',
+        APPSECRET: process.env.BUCKY_DROP_APPSECRET || '8d8e3c046d6bf420b5999899786d8481',
+        DOMAIN: 'https://bdopenapi.buckydrop.com',
+        API_PATH: 'api/rest/v2/adapt/adaptation/logistics/channel-carriage-list'
+    };
+    const bucky = new BuckyDropService(buckyConfig);
+
+    for (const country of list) {
+        const fixture = COVERAGE_FIXTURES[country.code] || {};
+        const entry = { code: country.code, name: country.name, rates: 0, status: 'unknown', detail: null, workingName: null };
+
+        try {
+            const quote = await axios.post(selfUrl, {
+                rate: {
+                    origin: { country: 'CN', postal_code: '518000' },
+                    destination: {
+                        country: country.code,
+                        country_code: country.code,
+                        postal_code: fixture.postcode || '',
+                        province: fixture.province || ''
+                    },
+                    items: [{
+                        name: 'Coverage probe',
+                        product_id: 9138638192940,
+                        variant_id: 9138638192940,
+                        quantity: 1,
+                        grams: 550,
+                        price: 2105,
+                        requires_shipping: true
+                    }],
+                    currency: 'USD'
+                }
+            }, { timeout: 90000 });
+
+            entry.rates = (quote.data && quote.data.rates ? quote.data.rates.length : 0);
+            entry.status = entry.rates > 0 ? 'ok' : 'empty';
+        } catch (err) {
+            entry.status = 'error';
+            entry.detail = err.message;
+        }
+
+        // Anything empty: ask BuckyDrop directly under alternative names, to tell
+        // a name-matching bug apart from a country they simply do not serve.
+        if (entry.status === 'empty') {
+            const mapping = getCountryMapping(country.code) || { name: country.name };
+            const tried = [];
+            for (const candidate of countryNameCandidates(mapping.name || country.name, country.code)) {
+                try {
+                    const resp = await bucky.fetchShippingRates({
+                        lang: 'en',
+                        country: candidate,
+                        countryCode: country.code,
+                        detailAddress: '',
+                        postCode: fixture.postcode || '',
+                        productList: [{ length: 95.5, width: 95.5, height: 95.5, weight: 0.55, count: 1, categoryCode: 'other' }],
+                        orderBy: 'price',
+                        orderType: 'asc'
+                    });
+                    const n = ((resp && resp.data && resp.data.records) || []).length;
+                    tried.push({ name: candidate, records: n });
+                    if (n > 0) { entry.workingName = candidate; break; }
+                } catch (e) {
+                    tried.push({ name: candidate, error: String(e.message).slice(0, 60) });
+                }
+                await new Promise(r => setTimeout(r, 200));
+            }
+            entry.detail = tried;
+            entry.status = entry.workingName ? 'fixable' : 'unserved';
+        }
+
+        coverageRun.results.push(entry);
+        coverageRun.done++;
+        logger.info(`🌍 Coverage ${coverageRun.done}/${coverageRun.total}: ${country.code} ${entry.status} (${entry.rates} rates)`);
+    }
+
+    coverageRun.running = false;
+    coverageRun.finishedAt = new Date().toISOString();
+    logger.info(`🌍 Coverage sweep complete: ${coverageRun.total} countries`);
+}
+
+function coverageSummary() {
+    if (!coverageRun) return null;
+    const counts = { ok: 0, fixable: 0, unserved: 0, error: 0 };
+    for (const r of coverageRun.results) counts[r.status] = (counts[r.status] || 0) + 1;
+    return {
+        running: coverageRun.running,
+        startedAt: coverageRun.startedAt,
+        finishedAt: coverageRun.finishedAt,
+        total: coverageRun.total,
+        done: coverageRun.done,
+        counts
+    };
+}
+
+/**
+ * GET /api/shipping/coverage-status
+ * Progress and results so far. Safe to poll.
+ */
+router.get('/coverage-status', (req, res) => {
+    if (!coverageRun) return res.json({ success: true, started: false });
+    res.json({
+        success: true,
+        started: true,
+        summary: coverageSummary(),
+        results: coverageRun.results
+    });
+});
+
 /**
  * GET /api/shipping/shipping-countries?shop=...
  * Read-only: the country codes this shop actually ships to, taken from its

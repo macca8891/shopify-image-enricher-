@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Country Shipping Coverage</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            max-width: 1100px; margin: 0 auto; padding: 24px;
+            background: #f5f5f5; color: #202223;
+        }
+        .card { background:#fff; padding:20px; border-radius:10px; margin-bottom:18px; box-shadow:0 1px 3px rgba(0,0,0,.1); }
+        h1 { margin:0 0 6px; font-size:24px; }
+        .sub { color:#6d7175; font-size:14px; margin:0; }
+        button { background:#008060; color:#fff; border:0; padding:10px 18px; border-radius:6px; font-size:14px; font-weight:600; cursor:pointer; }
+        button:hover { background:#006e52; }
+        button:disabled { background:#a7b0b5; cursor:not-allowed; }
+
+        .bar { height:10px; background:#e1e3e5; border-radius:6px; overflow:hidden; margin:16px 0 8px; }
+        .bar span { display:block; height:100%; background:#008060; width:0; transition:width .4s; }
+        .progress-label { font-size:13px; color:#6d7175; }
+
+        .tiles { display:flex; gap:26px; flex-wrap:wrap; margin-top:6px; }
+        .tiles div { font-size:13px; color:#6d7175; }
+        .tiles strong { display:block; font-size:24px; color:#202223; font-variant-numeric:tabular-nums; }
+        .tiles .ok strong { color:#0b6b47; }
+        .tiles .fix strong { color:#9b2c22; }
+        .tiles .un strong { color:#8a5a00; }
+
+        table { width:100%; border-collapse:collapse; }
+        th,td { text-align:left; padding:9px 10px; border-bottom:1px solid #e1e3e5; font-size:13px; }
+        th { font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:#6d7175; position:sticky; top:0; background:#fff; }
+        .pill { display:inline-block; padding:2px 9px; border-radius:999px; font-size:11px; font-weight:700; }
+        .pill.ok { background:#d3f3e5; color:#0b6b47; }
+        .pill.fixable { background:#fde3e1; color:#9b2c22; }
+        .pill.unserved { background:#fff1d6; color:#8a5a00; }
+        .pill.error { background:#e4e5e7; color:#42474c; }
+        .muted { color:#6d7175; }
+        .filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+        .filters button { background:#fff; color:#202223; border:1px solid #c9cccf; padding:6px 12px; font-weight:500; }
+        .filters button.active { background:#202223; color:#fff; border-color:#202223; }
+        .scroll { max-height:620px; overflow-y:auto; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Country Shipping Coverage</h1>
+        <p class="sub">Every country the store sells to, quoted against the live carrier service.</p>
+    </div>
+
+    <div class="card">
+        <button id="runBtn" onclick="startRun()">Start sweep</button>
+        <span id="state" class="progress-label" style="margin-left:12px"></span>
+        <div class="bar"><span id="barFill"></span></div>
+        <div class="progress-label" id="progressText">Not started</div>
+
+        <div class="tiles" id="tiles"></div>
+    </div>
+
+    <div class="card">
+        <div class="filters" id="filters"></div>
+        <div class="scroll">
+            <table>
+                <thead>
+                    <tr><th style="width:60px">Code</th><th>Country</th><th style="width:70px">Rates</th><th style="width:110px">Status</th><th>Notes</th></tr>
+                </thead>
+                <tbody id="rows"><tr><td colspan="5" class="muted">No results yet.</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+<script>
+const SHOP = 'spare-part-mart.myshopify.com';
+let results = [];
+let filter = 'all';
+const $ = id => document.getElementById(id);
+
+// A country is only a problem if BuckyDrop serves it under some other name.
+// "unserved" means they genuinely have no routes there - not our bug.
+const LABEL = {
+    ok:       ['ok',       'Quoting normally'],
+    fixable:  ['fixable',  'BuckyDrop serves it under another name - our bug'],
+    unserved: ['unserved', 'BuckyDrop has no routes here'],
+    error:    ['error',    'Request failed']
+};
+
+async function startRun() {
+    $('runBtn').disabled = true;
+    $('state').textContent = 'starting…';
+    try {
+        const r = await fetch('/api/shipping/coverage-run', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ shop: SHOP })
+        });
+        const d = await r.json();
+        $('state').textContent = d.message || 'running';
+    } catch (e) {
+        $('state').textContent = 'failed to start: ' + e.message;
+        $('runBtn').disabled = false;
+    }
+}
+
+async function poll() {
+    try {
+        const r = await fetch('/api/shipping/coverage-status');
+        const d = await r.json();
+        if (!d.started) { $('progressText').textContent = 'Not started'; return; }
+
+        const s = d.summary;
+        results = d.results || [];
+
+        const pct = s.total ? (s.done / s.total * 100) : 0;
+        $('barFill').style.width = pct + '%';
+        $('progressText').textContent = `${s.done} of ${s.total} countries tested (${pct.toFixed(0)}%)`;
+        $('state').textContent = s.running ? 'running…' : 'complete';
+        $('runBtn').disabled = s.running;
+
+        const c = s.counts || {};
+        $('tiles').innerHTML = `
+            <div class="ok"><strong>${c.ok||0}</strong>working</div>
+            <div class="fix"><strong>${c.fixable||0}</strong>fixable bug</div>
+            <div class="un"><strong>${c.unserved||0}</strong>not served by BuckyDrop</div>
+            <div><strong>${c.error||0}</strong>errored</div>
+        `;
+        renderFilters(c);
+        render();
+    } catch (e) { /* keep polling */ }
+}
+
+function renderFilters(c) {
+    const opts = [['all','All'],['fixable','Fixable'],['unserved','Unserved'],['error','Errors'],['ok','Working']];
+    $('filters').innerHTML = opts.map(([k,label]) => {
+        const n = k === 'all' ? results.length : (c[k] || 0);
+        return `<button class="${filter===k?'active':''}" onclick="setFilter('${k}')">${label} (${n})</button>`;
+    }).join('');
+}
+
+function setFilter(f) { filter = f; poll(); }
+
+function render() {
+    const shown = filter === 'all' ? results : results.filter(r => r.status === filter);
+    if (!shown.length) { $('rows').innerHTML = '<tr><td colspan="5" class="muted">Nothing in this view.</td></tr>'; return; }
+
+    $('rows').innerHTML = shown.map(r => {
+        let note = '';
+        if (r.status === 'fixable') {
+            note = `works as <strong>“${r.workingName}”</strong> — needs a buckyDropName override`;
+        } else if (r.status === 'unserved') {
+            note = '<span class="muted">no routes under any name tried</span>';
+        } else if (r.status === 'error') {
+            note = `<span class="muted">${String(r.detail).slice(0,80)}</span>`;
+        }
+        const [cls, title] = LABEL[r.status] || ['error', ''];
+        return `<tr>
+            <td><strong>${r.code}</strong></td>
+            <td>${r.name}</td>
+            <td>${r.rates}</td>
+            <td><span class="pill ${cls}" title="${title}">${r.status}</span></td>
+            <td>${note}</td>
+        </tr>`;
+    }).join('');
+}
+
+poll();
+setInterval(poll, 4000);
+</script>
+</body>
+</html>
