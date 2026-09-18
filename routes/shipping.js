@@ -3200,6 +3200,56 @@ router.get('/list-carrier-services', async (req, res) => {
 });
 
 /**
+ * GET /api/shipping/shipping-countries?shop=...
+ * Read-only: the country codes this shop actually ships to, taken from its
+ * delivery profile zones. Used to scope country coverage testing.
+ */
+router.get('/shipping-countries', async (req, res) => {
+    try {
+        const { shop } = req.query;
+        if (!shop) return res.status(400).json({ error: 'shop is required' });
+
+        const shopData = await Shop.findOne({ domain: shop });
+        if (!shopData || !shopData.accessToken) {
+            return res.status(404).json({ error: `No stored access token for ${shop}` });
+        }
+
+        const response = await fetch(`https://${shop}/admin/api/2024-01/shipping_zones.json`, {
+            headers: { 'X-Shopify-Access-Token': shopData.accessToken }
+        });
+
+        if (!response.ok) {
+            return res.status(502).json({ error: `Shopify returned ${response.status}` });
+        }
+
+        const data = await response.json();
+        const countries = new Map();
+        for (const zone of data.shipping_zones || []) {
+            for (const c of zone.countries || []) {
+                countries.set(c.code, {
+                    code: c.code,
+                    name: c.name,
+                    zone: zone.name,
+                    provinces: (c.provinces || []).slice(0, 3).map(p => ({ code: p.code, name: p.name }))
+                });
+            }
+        }
+
+        const list = [...countries.values()].sort((a, b) => a.code.localeCompare(b.code));
+        res.json({
+            success: true,
+            zoneCount: (data.shipping_zones || []).length,
+            zones: (data.shipping_zones || []).map(z => ({ name: z.name, countryCount: (z.countries || []).length })),
+            countryCount: list.length,
+            countries: list
+        });
+    } catch (error) {
+        logger.error('shipping-countries error:', error);
+        res.status(500).json({ error: 'Failed to read shipping zones', details: error.message });
+    }
+});
+
+/**
  * GET /api/shipping/weight-audit?shop=...&maxPages=20&cursor=...
  * Read-only survey comparing each product's variant weight against its
  * custom.weight_raw_kg_ metafield, to size up how much of the catalogue
