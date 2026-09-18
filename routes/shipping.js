@@ -1492,6 +1492,10 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         let consolidatedCheapestPrice = 999999; // For price comparison
         let routesAdded = 0; // Track routes added to response
         let routesSkipped = 0; // Track routes skipped
+        // Declared here rather than in the try block below: the "no rates found"
+        // diagnostics at the end of the handler reference it, and a block-scoped
+        // declaration made that path throw a ReferenceError instead of logging.
+        let consolidatedResult;
         
         console.log(`🔵 ABOUT TO START BUCKYDROP CALCULATION`);
         console.log(`   Target Country: ${targetCountry.name} (${targetCountry.code})`);
@@ -1509,7 +1513,6 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             console.log(`   Country: ${targetCountry.name} (${targetCountry.code})`);
             addProcessingLog(`🔵 CALLING BUCKYDROP API - CONSOLIDATED for ${targetCountry.name}`);
             logger.info(`📦 Calculating CONSOLIDATED shipping (all items together)`);
-            let consolidatedResult;
             try {
                 consolidatedResult = await shippingService.calculateProductShipping(
                     combinedProduct,
@@ -1569,7 +1572,12 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                     if (index > 0) {
                         await new Promise(resolve => setTimeout(resolve, 100 * index));
                     }
-                    const itemWeightKg = ((item.grams || 0) / 1000) * (item.quantity || 1);
+                    // Use the weight already resolved for this item (metafield first,
+                    // variant as fallback) rather than re-deriving it from item.grams,
+                    // which carries the unreliable Shopify variant weight.
+                    const itemWeightKg = productDataResults[index]
+                        ? productDataResults[index].weightKg
+                        : ((item.grams || 0) / 1000) * (item.quantity || 1);
                     const itemProduct = {
                         title: item.name || `Product ${index + 1}`,
                         variants: [{
@@ -1636,7 +1644,12 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                     ];
                     
                     try {
-                        const itemWeightKg = ((item.grams || 0) / 1000) * (item.quantity || 1);
+                        // Use the weight already resolved for this item (metafield first,
+                    // variant as fallback) rather than re-deriving it from item.grams,
+                    // which carries the unreliable Shopify variant weight.
+                    const itemWeightKg = productDataResults[index]
+                        ? productDataResults[index].weightKg
+                        : ((item.grams || 0) / 1000) * (item.quantity || 1);
                         logger.info(`  🔍 Calling BuckyDrop for ${item.name}: weight=${itemWeightKg.toFixed(3)}kg, quantity=${item.quantity || 1}, country=${targetCountry.code}`);
                         addProcessingLog(`🔍 Calling BuckyDrop for ${item.name}`, {
                             weight: itemWeightKg,

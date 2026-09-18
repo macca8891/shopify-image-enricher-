@@ -567,12 +567,9 @@ class ShippingService {
             countryNameForBuckyDrop = 'USA';
         }
         
-        // Special handling for Singapore - try "SG" as country name if "Singapore" doesn't work
-        if (country.code === 'SG' && !country.buckyDropName) {
-            // First try with "Singapore", but we'll log it for debugging
-            countryNameForBuckyDrop = country.name;
-        }
-        
+        // Singapore needs the uppercase "SINGAPORE" that BuckyDrop matches on;
+        // that now comes through buckyDropName in utils/countryMapping.js.
+
         // Special handling for Singapore - it's a city-state, so province should be empty
         const isSingapore = country.code === 'SG';
         

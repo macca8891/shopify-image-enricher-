@@ -242,7 +242,10 @@ const COUNTRY_MAPPING = {
     'SC': { code: 'SC', name: 'Seychelles' },
     'SD': { code: 'SD', name: 'Sudan' },
     'SE': { code: 'SE', name: 'Sweden' },
-    'SG': { code: 'SG', name: 'Singapore' },
+    // BuckyDrop's Singapore entry only matches uppercase: "Singapore" returns
+    // zero routes, "SINGAPORE" returns the full list. Other countries match
+    // case-insensitively, so this quirk is specific to SG.
+    'SG': { code: 'SG', name: 'Singapore', buckyDropName: 'SINGAPORE' },
     'SH': { code: 'SH', name: 'Saint Helena' },
     'SI': { code: 'SI', name: 'Slovenia' },
     'SJ': { code: 'SJ', name: 'Svalbard and Jan Mayen' },
