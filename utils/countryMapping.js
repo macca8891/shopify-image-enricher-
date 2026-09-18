@@ -68,7 +68,8 @@ const COUNTRY_MAPPING = {
     'CW': { code: 'CW', name: 'Curaçao' },
     'CX': { code: 'CX', name: 'Christmas Island' },
     'CY': { code: 'CY', name: 'Cyprus' },
-    'CZ': { code: 'CZ', name: 'Czech Republic' },
+    // BuckyDrop errors outright on "CZECH REPUBLIC"; "CZECHIA" returns 21 routes.
+    'CZ': { code: 'CZ', name: 'Czech Republic', buckyDropName: 'CZECHIA' },
     
     // D
     'DE': { code: 'DE', name: 'Germany' },
@@ -180,7 +181,8 @@ const COUNTRY_MAPPING = {
     'ML': { code: 'ML', name: 'Mali' },
     'MM': { code: 'MM', name: 'Myanmar' },
     'MN': { code: 'MN', name: 'Mongolia' },
-    'MO': { code: 'MO', name: 'Macao' },
+    // BuckyDrop lists Macau under the "MACAU" spelling; "MACAO" returns nothing.
+    'MO': { code: 'MO', name: 'Macao', buckyDropName: 'MACAU' },
     'MP': { code: 'MP', name: 'Northern Mariana Islands' },
     'MQ': { code: 'MQ', name: 'Martinique' },
     'MR': { code: 'MR', name: 'Mauritania' },

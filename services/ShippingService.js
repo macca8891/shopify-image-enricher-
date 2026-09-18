@@ -558,17 +558,20 @@ class ShippingService {
         // Calculate for target country first (primary)
         // Match Google Apps Script format exactly
         // Use buckyDropName if provided, otherwise use country.name
-        // BuckyDrop requires "USA" instead of "United States"
-        // For Singapore, try different name formats if needed
         let countryNameForBuckyDrop = country.buckyDropName || country.name;
-        
+
         // Special handling for United States - BuckyDrop requires "USA" not "United States"
         if (country.code === 'US' && !country.buckyDropName) {
             countryNameForBuckyDrop = 'USA';
         }
-        
-        // Singapore needs the uppercase "SINGAPORE" that BuckyDrop matches on;
-        // that now comes through buckyDropName in utils/countryMapping.js.
+
+        // BuckyDrop matches country names case-sensitively for a large number of
+        // destinations: "Albania" returns nothing while "ALBANIA" returns routes.
+        // A 236-country sweep found 18 countries failing on casing alone, with no
+        // country where uppercase performed worse. Uppercase everything.
+        // Countries needing a genuinely different word (Czechia, Macau) are
+        // handled by buckyDropName in utils/countryMapping.js.
+        countryNameForBuckyDrop = String(countryNameForBuckyDrop).toUpperCase();
 
         // Special handling for Singapore - it's a city-state, so province should be empty
         const isSingapore = country.code === 'SG';
