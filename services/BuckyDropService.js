@@ -1,6 +1,16 @@
 const crypto = require('crypto');
+const https = require('https');
 const axios = require('axios');
 const logger = require('../utils/logger');
+
+// PERF: reuse TLS connections to BuckyDrop. Without this every quote pays a
+// fresh DNS + TCP + TLS handshake, measured at 30-170ms per call.
+const keepAliveAgent = new https.Agent({
+    keepAlive: true,
+    keepAliveMsecs: 30000,
+    maxSockets: 20,
+    timeout: 60000
+});
 
 /**
  * BuckyDrop Shipping Rate Service
@@ -79,6 +89,7 @@ class BuckyDropService {
         'Content-Type': 'application/json'
       },
       data: jsonParams, // Send as JSON string (NOT including appCode in body)
+      httpsAgent: keepAliveAgent, // reuse the TLS connection between quotes
       timeout: 10000 // 10 second timeout (reduced from 30s for faster failures)
     };
 

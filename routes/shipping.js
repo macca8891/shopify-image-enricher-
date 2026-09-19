@@ -33,6 +33,51 @@ const METAFIELD_CACHE_TTL_MS = 15 * 60 * 1000;
 const METAFIELD_CACHE_MAX = 2000;
 const metafieldCache = new Map(); // productId -> { metafields, expires }
 
+// PERF: cache BuckyDrop's own response for a short window.
+//
+// This stores what BuckyDrop actually returned - not a predicted or modelled
+// price - so a cache hit serves a real quote at most RATE_CACHE_TTL_MS old.
+// Shopify calls this endpoint several times during one checkout (address edits,
+// quantity changes) and each call otherwise costs a fresh ~2s round trip.
+//
+// Deliberately caches the RAW routes rather than the finished rate list, so the
+// merchant's shipping-option toggles and the dedup rules are re-applied every
+// request. Changing a toggle therefore takes effect immediately.
+const RATE_CACHE_TTL_MS = 15 * 60 * 1000;
+const RATE_CACHE_MAX = 1000;
+const rateCache = new Map();
+
+function rateCacheKey(shopDomain, countryCode, weightKg, dims, productInfo) {
+    // Round so trivially different carts share an entry. 10g of weight and a
+    // millimetre of size are finer than BuckyDrop's own pricing steps.
+    const w = Number(weightKg || 0).toFixed(2);
+    const h = Math.round((dims && dims.height) || 0);
+    const l = Math.round((dims && dims.length) || 0);
+    const wd = Math.round((dims && dims.width) || 0);
+    const flags = `${productInfo && productInfo.isClothing ? 1 : 0}${productInfo && productInfo.isBattery ? 1 : 0}`;
+    return `${shopDomain}|${countryCode}|${w}|${h}x${l}x${wd}|${flags}`;
+}
+
+function getCachedRates(key) {
+    const hit = rateCache.get(key);
+    if (!hit) return null;
+    if (Date.now() > hit.expires) {
+        rateCache.delete(key);
+        return null;
+    }
+    rateCache.delete(key);
+    rateCache.set(key, hit);
+    return { result: hit.result, ageMs: Date.now() - hit.storedAt };
+}
+
+function setCachedRates(key, result) {
+    if (!result || !Array.isArray(result.allRoutes) || result.allRoutes.length === 0) return;
+    if (rateCache.size >= RATE_CACHE_MAX) {
+        rateCache.delete(rateCache.keys().next().value);
+    }
+    rateCache.set(key, { result, storedAt: Date.now(), expires: Date.now() + RATE_CACHE_TTL_MS });
+}
+
 function getCachedMetafields(productId) {
     const hit = metafieldCache.get(productId);
     if (!hit) return null;
@@ -1556,12 +1601,29 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             addProcessingLog(`🔵 CALLING BUCKYDROP API - CONSOLIDATED for ${targetCountry.name}`);
             logger.info(`📦 Calculating CONSOLIDATED shipping (all items together)`);
             try {
-                consolidatedResult = await shippingService.calculateProductShipping(
-                    combinedProduct,
-                    combinedMetafields,
-                    targetCountry,
-                    totalQuantity
-                );
+                // PERF: reuse a recent real quote for the same shipment rather than
+                // paying another ~2s round trip. Filtering still runs on the result.
+                const rateKey = rateCacheKey(shopDomain, targetCountry.code, combinedWeight, combinedDimensions, productInfo);
+                const cachedRate = getCachedRates(rateKey);
+
+                if (cachedRate) {
+                    consolidatedResult = cachedRate.result;
+                    logger.info(`⚡ Rate cache HIT for ${rateKey} (age ${Math.round(cachedRate.ageMs / 1000)}s, ${consolidatedResult.allRoutes.length} routes)`);
+                    addProcessingLog(`⚡ Rate cache HIT`, {
+                        key: rateKey,
+                        ageSeconds: Math.round(cachedRate.ageMs / 1000),
+                        routes: consolidatedResult.allRoutes.length
+                    });
+                } else {
+                    consolidatedResult = await shippingService.calculateProductShipping(
+                        combinedProduct,
+                        combinedMetafields,
+                        targetCountry,
+                        totalQuantity
+                    );
+                    setCachedRates(rateKey, consolidatedResult);
+                    addProcessingLog(`💾 Rate cache MISS - stored`, { key: rateKey });
+                }
                 console.log(`🔵 BUCKYDROP API CALL SUCCESS`);
                 console.log(`   Result type: ${typeof consolidatedResult}`);
                 console.log(`   Result keys: ${consolidatedResult ? Object.keys(consolidatedResult).join(', ') : 'NULL'}`);
@@ -3470,6 +3532,78 @@ router.get('/coverage-status', (req, res) => {
         started: true,
         summary: coverageSummary(),
         results: coverageRun.results
+    });
+});
+
+/**
+ * POST /api/shipping/prewarm
+ * Called from the storefront (cart or product page) to fetch a real quote
+ * early, so the cache is warm by the time the customer reaches checkout.
+ *
+ * Responds immediately - the caller never waits on BuckyDrop. This makes a
+ * genuine live call, so nothing here affects price accuracy; it only moves
+ * the latency off the checkout path.
+ *
+ * Body: { shop, country, items: [{ product_id, variant_id, quantity, grams }] }
+ */
+router.post('/prewarm', express.json(), async (req, res) => {
+    try {
+        const { shop, country, items } = req.body || {};
+        if (!shop || !country || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: 'shop, country and items are required' });
+        }
+
+        // Answer straight away; warming happens behind the response.
+        res.json({ success: true, warming: true, country: String(country).toUpperCase() });
+
+        const port = process.env.PORT || 3001;
+        const selfUrl = `http://127.0.0.1:${port}/api/shipping/carrier-service?shop=${encodeURIComponent(shop)}`;
+
+        axios.post(selfUrl, {
+            rate: {
+                origin: { country: 'CN', postal_code: '518000' },
+                destination: {
+                    country: String(country).toUpperCase(),
+                    country_code: String(country).toUpperCase(),
+                    postal_code: '',
+                    province: ''
+                },
+                items: items.map(i => ({
+                    name: i.name || 'prewarm',
+                    product_id: i.product_id,
+                    variant_id: i.variant_id || i.product_id,
+                    quantity: i.quantity || 1,
+                    grams: i.grams || 0,
+                    price: i.price || 0,
+                    requires_shipping: true
+                })),
+                currency: 'USD'
+            }
+        }, { timeout: 90000 })
+            .then(() => logger.info(`🔥 Prewarmed rates for ${shop} → ${country}`))
+            .catch(err => logger.warn(`Prewarm failed for ${country} (harmless): ${err.message}`));
+    } catch (error) {
+        logger.error('prewarm error:', error);
+        if (!res.headersSent) res.status(500).json({ error: 'Prewarm failed' });
+    }
+});
+
+/**
+ * GET /api/shipping/cache-stats
+ * Visibility into how well the rate cache is working.
+ */
+router.get('/cache-stats', (req, res) => {
+    const now = Date.now();
+    const entries = [...rateCache.entries()].map(([key, v]) => ({
+        key,
+        ageSeconds: Math.round((now - v.storedAt) / 1000),
+        expiresInSeconds: Math.round((v.expires - now) / 1000),
+        routes: v.result && v.result.allRoutes ? v.result.allRoutes.length : 0
+    }));
+    res.json({
+        success: true,
+        rateCache: { size: rateCache.size, ttlMinutes: RATE_CACHE_TTL_MS / 60000, entries: entries.slice(0, 50) },
+        metafieldCache: { size: metafieldCache.size, ttlMinutes: METAFIELD_CACHE_TTL_MS / 60000 }
     });
 });
 
