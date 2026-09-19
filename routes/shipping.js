@@ -25,6 +25,37 @@ let detailedProcessingLogs = []; // Store processing logs for debug endpoint
 // hidden options are visible instead of silently disappearing.
 let lastFilterAnalysis = {};
 
+// PERF: product metafields are fetched live from Shopify on nearly every quote
+// (the Product collection is not populated for this shop, so the DB lookup
+// always misses). That costs 450-870ms per request on the checkout hot path,
+// and the data - weight and dimensions - changes rarely. Cache it in process.
+const METAFIELD_CACHE_TTL_MS = 15 * 60 * 1000;
+const METAFIELD_CACHE_MAX = 2000;
+const metafieldCache = new Map(); // productId -> { metafields, expires }
+
+function getCachedMetafields(productId) {
+    const hit = metafieldCache.get(productId);
+    if (!hit) return null;
+    if (Date.now() > hit.expires) {
+        metafieldCache.delete(productId);
+        return null;
+    }
+    // Refresh recency for the crude LRU eviction below.
+    metafieldCache.delete(productId);
+    metafieldCache.set(productId, hit);
+    return hit.metafields;
+}
+
+function setCachedMetafields(productId, metafields) {
+    if (!productId || !Array.isArray(metafields) || metafields.length === 0) return;
+    if (metafieldCache.size >= METAFIELD_CACHE_MAX) {
+        // Map preserves insertion order, so the first key is the least recently used.
+        const oldest = metafieldCache.keys().next().value;
+        metafieldCache.delete(oldest);
+    }
+    metafieldCache.set(productId, { metafields, expires: Date.now() + METAFIELD_CACHE_TTL_MS });
+}
+
 /**
  * Pull the curated per-unit weight (kg) out of a product's metafields.
  *
@@ -1077,16 +1108,26 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             let metafields = [];
             let dbFound = false;
             
+            // PERF: in-process cache first - avoids both the DB round trip and the
+            // live Shopify GraphQL fetch below on repeat quotes for the same product.
+            const memoised = productId ? getCachedMetafields(productId) : null;
+            if (memoised) {
+                metafields = memoised;
+                dbFound = true;
+                logger.info(`  ⚡ Metafields from cache for ${item.name} (${memoised.length} fields)`);
+            }
+
             // Quick DB lookup only (no Shopify API calls)
-            if (productId) {
+            if (productId && !memoised) {
                 try {
-                    const cachedProduct = await Product.findOne({ 
+                    const cachedProduct = await Product.findOne({
                         shopDomain: shopDomain,
                         shopifyId: productId 
                     }).select('metafields').lean();
                     
                     if (cachedProduct && cachedProduct.metafields && cachedProduct.metafields.length > 0) {
                         metafields = cachedProduct.metafields;
+                        setCachedMetafields(productId, metafields);
                         dbFound = true;
                         logger.info(`  ✅ Found ${metafields.length} metafields in DB for ${item.name} (productId: ${productId})`);
                         logger.info(`     Metafield keys: ${metafields.map(m => `${m.namespace || 'default'}.${m.key}`).join(', ')}`);
@@ -1147,6 +1188,7 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                                         
                                         if (apiMetafields.length > 0) {
                                             metafields = apiMetafields;
+                                            setCachedMetafields(productId, metafields);
                                             logger.info(`  ✅ Fetched ${metafields.length} metafields from Shopify API for ${item.name}`);
                                             logger.info(`     Metafield keys: ${metafields.map(m => `${m.namespace || 'default'}.${m.key}`).join(', ')}`);
                                             
@@ -1561,10 +1603,28 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             logger.info(`⏱️ Consolidated shipping calculation took: ${consolidatedTime}ms`);
             
             // OPTION 2: Calculate individual shipping for each product (with rate limiting protection)
+            //
+            // PERF: for a single-item cart "individual" is the same shipment as
+            // "consolidated" - same weight, same dimensions, same destination - so
+            // it costs a second BuckyDrop round trip (~800ms) to reproduce an answer
+            // we already have. Measured on a real quote: consolidated 37.72 CNY,
+            // individual 37.72 CNY, savings 0.00. Skip it when there is one item.
             const individualStartTime = Date.now();
+            const skipIndividual = processedItems.length < 2;
+            // Declared out here because the timing breakdown below reads it on
+            // both paths; block-scoping it inside the else threw a ReferenceError.
+            let individualTime = 0;
+
+            if (skipIndividual) {
+                logger.info(`⏭️ Skipping INDIVIDUAL shipping: single-item cart, identical to consolidated`);
+                addProcessingLog(`⏭️ Skipped individual shipping (single-item cart)`, {
+                    itemCount: processedItems.length,
+                    savedRoundTrip: true
+                });
+            } else {
             logger.info(`📦 Calculating INDIVIDUAL shipping (each product separately)`);
             addProcessingLog(`📦 Starting individual shipping calculation for ${processedItems.length} products`);
-            
+
             // Add delay between requests to avoid rate limiting (BuckyDrop has rate limits)
             const individualCalculations = await Promise.all(
                 processedItems.map(async (item, index) => {
@@ -1805,7 +1865,7 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                     }
                 })
             );
-            const individualTime = Date.now() - individualStartTime;
+            individualTime = Date.now() - individualStartTime;
             logger.info(`⏱️ Individual shipping calculations took: ${individualTime}ms (${processedItems.length} products)`);
             addProcessingLog(`✅ Individual shipping calculation complete`, { time: individualTime, itemsCount: processedItems.length });
             
@@ -1854,6 +1914,8 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                 addProcessingLog(`🔧 FIXED: Recalculated totalIndividualPrice to ${totalIndividualPrice.toFixed(2)} CNY`);
             }
             
+            } // end of individual shipping calculation (skipped for single-item carts)
+
             // Calculate consolidated cheapest price from actual routes (in CNY)
             consolidatedCheapestPrice = 999999;
             if (consolidatedResult && consolidatedResult.allRoutes && consolidatedResult.allRoutes.length > 0) {
