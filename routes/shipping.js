@@ -47,6 +47,27 @@ const RATE_CACHE_TTL_MS = 15 * 60 * 1000;
 const RATE_CACHE_MAX = 1000;
 const rateCache = new Map();
 
+// PERF: the shipping-option settings were read from MongoDB on every quote.
+// Railway sits far from the Atlas cluster, so that one round trip was almost
+// the entire cost of a cache-hit request (~750ms of a 751ms response).
+// A short TTL is enough here, and saving from the admin panel invalidates the
+// entry explicitly, so toggling an option still applies immediately.
+const SETTINGS_CACHE_TTL_MS = 30 * 1000;
+const settingsCache = new Map(); // shop -> { settings, expires }
+
+async function getShippingOptionSettings(shop) {
+    const hit = settingsCache.get(shop);
+    if (hit && Date.now() < hit.expires) return hit.settings;
+
+    const settings = await ShippingOptionSettings.forShop(shop);
+    settingsCache.set(shop, { settings, expires: Date.now() + SETTINGS_CACHE_TTL_MS });
+    return settings;
+}
+
+function invalidateSettingsCache(shop) {
+    settingsCache.delete(shop);
+}
+
 function rateCacheKey(shopDomain, countryCode, weightKg, dims, productInfo) {
     // Round so trivially different carts share an entry. 10g of weight and a
     // millimetre of size are finer than BuckyDrop's own pricing steps.
@@ -2329,7 +2350,7 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         // FILTERING RULE 0: Manually disabled services (managed from the admin page)
         // Each entry is matched as an UPPERCASE substring of the BuckyDrop service
         // name, so naming variants from the live feed are caught too.
-        const optionSettings = await ShippingOptionSettings.forShop(shopDomain);
+        const optionSettings = await getShippingOptionSettings(shopDomain);
         const excludedServiceNames = (optionSettings.disabledServices || []).map(t => t.toUpperCase());
         const autoFiltersEnabled = optionSettings.autoFiltersEnabled !== false;
 
@@ -3914,6 +3935,10 @@ router.post('/option-settings', express.json(), async (req, res) => {
             },
             { upsert: true, new: true, setDefaultsOnInsert: true }
         ).lean();
+
+        // Drop the cached copy so the change is live at checkout immediately
+        // rather than after the TTL expires.
+        invalidateSettingsCache(shop);
 
         logger.info(`💾 Shipping option settings saved for ${shop}: ${cleanedDisabled.length} disabled, ${cleanedForced.length} forced, autoFilters=${saved.autoFiltersEnabled}`);
 
