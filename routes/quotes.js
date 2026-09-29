@@ -1,0 +1,128 @@
+const express = require('express');
+const router = express.Router();
+const QuoteRequest = require('../models/QuoteRequest');
+const logger = require('../utils/logger');
+
+/**
+ * Storefront quote requests.
+ *
+ * POST /api/quotes   public, called by the form on sparepartmart.co
+ * GET  /api/quotes   private, polled by the Order Desk. Requires QUOTES_TOKEN.
+ * POST /api/quotes/:id/status  private, Order Desk marks progress.
+ *
+ * The GET carries customer names, emails and phone numbers, so it stays shut
+ * unless QUOTES_TOKEN is set in the environment. No token, no listing.
+ */
+
+// Crude in-memory throttle. A new dependency is not worth it for a form that
+// a human fills in; this only needs to stop a script hammering the endpoint.
+const RECENT = new Map();
+const WINDOW_MS = 10 * 60 * 1000;
+const MAX_PER_WINDOW = 5;
+
+function throttled(ip) {
+    const now = Date.now();
+    const hits = (RECENT.get(ip) || []).filter(t => now - t < WINDOW_MS);
+    hits.push(now);
+    RECENT.set(ip, hits);
+    if (RECENT.size > 5000) RECENT.clear();
+    return hits.length > MAX_PER_WINDOW;
+}
+
+function authed(req) {
+    const want = process.env.QUOTES_TOKEN;
+    if (!want) return false;
+    const got = req.get('X-Quotes-Token') || req.query.token || '';
+    return got === want;
+}
+
+router.post('/', async (req, res) => {
+    try {
+        const b = req.body || {};
+
+        // Honeypot. Real users never see this field, bots fill everything in.
+        if (b.website) {
+            logger.info('Quote request dropped: honeypot filled');
+            return res.json({ ok: true });   // look successful to the bot
+        }
+
+        const ip = (req.get('X-Forwarded-For') || req.ip || '').split(',')[0].trim();
+        if (throttled(ip)) {
+            return res.status(429).json({
+                ok: false,
+                error: 'Too many requests. Please email sales@sparepartmart.co instead.'
+            });
+        }
+
+        const name = (b.name || '').trim();
+        const email = (b.email || '').trim();
+        const parts = (b.parts || '').trim();
+        if (!name || !email || !parts) {
+            return res.status(400).json({
+                ok: false,
+                error: 'Name, email and the parts you need are all required.'
+            });
+        }
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+            return res.status(400).json({ ok: false, error: 'That email address does not look right.' });
+        }
+
+        const doc = await QuoteRequest.create({
+            shop: b.shop || 'spare-part-mart.myshopify.com',
+            name, email, parts,
+            phone: (b.phone || '').trim(),
+            company: (b.company || '').trim(),
+            country: (b.country || '').trim(),
+            machine: (b.machine || '').trim(),
+            quantity: (b.quantity || '').trim(),
+            notes: (b.notes || '').trim(),
+            sourceUrl: (b.sourceUrl || '').slice(0, 500),
+            ip
+        });
+
+        logger.info(`Quote request ${doc._id} from ${email}`);
+        return res.json({ ok: true, id: doc._id });
+    } catch (err) {
+        logger.error('Quote request failed:', err);
+        return res.status(500).json({
+            ok: false,
+            error: 'Something went wrong. Please email sales@sparepartmart.co.'
+        });
+    }
+});
+
+router.get('/', async (req, res) => {
+    if (!authed(req)) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const q = {};
+        if (req.query.status) q.status = req.query.status;
+        if (req.query.since) q.createdAt = { $gt: new Date(req.query.since) };
+        const rows = await QuoteRequest.find(q)
+            .sort({ createdAt: -1 })
+            .limit(Math.min(parseInt(req.query.limit || '100', 10), 500))
+            .lean();
+        return res.json({ quotes: rows });
+    } catch (err) {
+        logger.error('Quote listing failed:', err);
+        return res.status(500).json({ error: err.message, quotes: [] });
+    }
+});
+
+router.post('/:id/status', async (req, res) => {
+    if (!authed(req)) return res.status(401).json({ error: 'Unauthorized' });
+    const allowed = ['new', 'pulled', 'quoted', 'won', 'lost'];
+    const status = (req.body || {}).status;
+    if (!allowed.includes(status)) {
+        return res.status(400).json({ error: `status must be one of ${allowed.join(', ')}` });
+    }
+    try {
+        const patch = { status };
+        if ((req.body || {}).emailed !== undefined) patch.emailed = !!req.body.emailed;
+        await QuoteRequest.updateOne({ _id: req.params.id }, { $set: patch });
+        return res.json({ ok: true });
+    } catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
+});
+
+module.exports = router;

@@ -88,6 +88,10 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
 // Always allow Google Apps Script origins
 allowedOrigins.push('https://script.google.com');
 
+// The storefront itself. The quote form posts from the live domain, which is
+// not a *.myshopify.com host and so matches none of the rules below it.
+allowedOrigins.push('https://sparepartmart.co', 'https://www.sparepartmart.co');
+
 app.use(cors({
     origin: function (origin, callback) {
         // Allow requests with no origin (like mobile apps, curl, Postman, or Google Apps Script)
@@ -157,6 +161,7 @@ app.use('/api/pipeline', pipelineRoutes);
 app.use('/api/buckydrop', buckyDropRoutes);
 app.use('/api/shipping', shippingRoutes);
 app.use('/api/webhooks', webhookRoutes);
+app.use('/api/quotes', require('./routes/quotes'));
 
 // Serve embedded app for Shopify admin (check for embedded context)
 app.get('/', (req, res) => {
