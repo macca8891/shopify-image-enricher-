@@ -36,6 +36,21 @@ function authed(req) {
     return got === want;
 }
 
+/**
+ * Whether the listing token is configured, and the first/last two characters of
+ * what the server holds. Enough to tell "variable missing" apart from "value
+ * does not match" without disclosing the token itself.
+ */
+router.get('/config', (req, res) => {
+    const t = process.env.QUOTES_TOKEN || '';
+    res.json({
+        tokenConfigured: !!t,
+        tokenLength: t.length,
+        tokenHint: t ? `${t.slice(0, 2)}...${t.slice(-2)}` : null,
+        hasWhitespace: t !== t.trim()
+    });
+});
+
 router.post('/', async (req, res) => {
     try {
         const b = req.body || {};
