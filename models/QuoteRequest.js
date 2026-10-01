@@ -19,9 +19,20 @@ const QuoteRequestSchema = new mongoose.Schema({
     company: { type: String, trim: true, maxlength: 160 },
     country: { type: String, trim: true, maxlength: 80 },
 
-    // Free text. Customers paste part numbers in every imaginable format, so
-    // the parsing happens in the Order Desk where it can be corrected, not here.
+    // One entry per line of the form, so a request covering three machines keeps
+    // each part tied to its own machine and quantity. `parts` is the same
+    // content rendered as text, kept so anything reading it still works.
+    lines: [{
+        _id: false,
+        code: { type: String, trim: true, maxlength: 120 },
+        brand: { type: String, trim: true, maxlength: 120 },
+        machine: { type: String, trim: true, maxlength: 200 },
+        qty: { type: String, trim: true, maxlength: 20 }
+    }],
+
     parts: { type: String, required: true, maxlength: 4000 },
+
+    // Kept for requests submitted before the form split into lines.
     machine: { type: String, trim: true, maxlength: 300 },
     quantity: { type: String, trim: true, maxlength: 120 },
     notes: { type: String, maxlength: 2000 },

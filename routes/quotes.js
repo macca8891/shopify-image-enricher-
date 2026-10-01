@@ -67,9 +67,20 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ ok: false, error: 'That email address does not look right.' });
         }
 
+        // Structured rows, capped so a crafted payload cannot bloat a document.
+        const lines = (Array.isArray(b.lines) ? b.lines : [])
+            .slice(0, 60)
+            .map(l => ({
+                code: String(l && l.code || '').trim().slice(0, 120),
+                brand: String(l && l.brand || '').trim().slice(0, 120),
+                machine: String(l && l.machine || '').trim().slice(0, 200),
+                qty: String(l && l.qty || '').trim().slice(0, 20)
+            }))
+            .filter(l => l.code || l.brand || l.machine);
+
         const doc = await QuoteRequest.create({
             shop: b.shop || 'spare-part-mart.myshopify.com',
-            name, email, parts,
+            name, email, parts, lines,
             phone: (b.phone || '').trim(),
             company: (b.company || '').trim(),
             country: (b.country || '').trim(),
