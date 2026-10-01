@@ -47,7 +47,16 @@ router.get('/config', (req, res) => {
         tokenConfigured: !!t,
         tokenLength: t.length,
         tokenHint: t ? `${t.slice(0, 2)}...${t.slice(-2)}` : null,
-        hasWhitespace: t !== t.trim()
+        hasWhitespace: t !== t.trim(),
+        // Railway injects these itself. With several services (and, in this
+        // project's history, duplicates) they name exactly which one is
+        // actually serving this domain, so the variable goes to the right place.
+        railway: {
+            project: process.env.RAILWAY_PROJECT_NAME || null,
+            service: process.env.RAILWAY_SERVICE_NAME || null,
+            environment: process.env.RAILWAY_ENVIRONMENT_NAME || null,
+            deployedCommit: (process.env.RAILWAY_GIT_COMMIT_SHA || '').slice(0, 7) || null
+        }
     });
 });
 
