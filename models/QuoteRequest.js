@@ -19,6 +19,14 @@ const QuoteRequestSchema = new mongoose.Schema({
     company: { type: String, trim: true, maxlength: 160 },
     country: { type: String, trim: true, maxlength: 80 },
 
+    // Full delivery address, so the proforma can carry a real freight figure
+    // rather than an estimate. Collected on the cart's proforma request.
+    address1: { type: String, trim: true, maxlength: 200 },
+    address2: { type: String, trim: true, maxlength: 200 },
+    city: { type: String, trim: true, maxlength: 120 },
+    province: { type: String, trim: true, maxlength: 120 },
+    zip: { type: String, trim: true, maxlength: 40 },
+
     // One entry per line of the form, so a request covering three machines keeps
     // each part tied to its own machine and quantity. `parts` is the same
     // content rendered as text, kept so anything reading it still works.
