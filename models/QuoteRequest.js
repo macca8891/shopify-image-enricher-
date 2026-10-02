@@ -27,6 +27,9 @@ const QuoteRequestSchema = new mongoose.Schema({
     province: { type: String, trim: true, maxlength: 120 },
     zip: { type: String, trim: true, maxlength: 40 },
 
+    // The buyer's own PO, printed on the proforma as their reference
+    poNumber: { type: String, trim: true, maxlength: 60 },
+
     // One entry per line of the form, so a request covering three machines keeps
     // each part tied to its own machine and quantity. `parts` is the same
     // content rendered as text, kept so anything reading it still works.

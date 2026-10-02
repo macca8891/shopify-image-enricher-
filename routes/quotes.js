@@ -114,6 +114,7 @@ router.post('/', async (req, res) => {
             city: (b.city || '').trim(),
             province: (b.province || '').trim(),
             zip: (b.zip || '').trim(),
+            poNumber: (b.poNumber || '').trim(),
             machine: (b.machine || '').trim(),
             quantity: (b.quantity || '').trim(),
             notes: (b.notes || '').trim(),
