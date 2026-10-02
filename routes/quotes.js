@@ -104,6 +104,7 @@ router.post('/', async (req, res) => {
 
         const doc = await QuoteRequest.create({
             shop: b.shop || 'spare-part-mart.myshopify.com',
+            requestType: b.requestType === 'proforma' ? 'proforma' : 'quote',
             name, email, parts, lines,
             phone: (b.phone || '').trim(),
             company: (b.company || '').trim(),

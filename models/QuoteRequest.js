@@ -41,6 +41,10 @@ const QuoteRequestSchema = new mongoose.Schema({
     // tied back to what they were actually looking at.
     sourceUrl: { type: String, maxlength: 500 },
 
+    // 'quote' from the request form, 'proforma' when they asked for an invoice
+    // to raise payment against. A proforma means they intend to buy.
+    requestType: { type: String, default: 'quote', index: true },
+
     status: { type: String, default: 'new', index: true },
     emailed: { type: Boolean, default: false },
 
