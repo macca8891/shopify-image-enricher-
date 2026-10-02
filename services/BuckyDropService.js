@@ -59,6 +59,15 @@ class BuckyDropService {
    * @returns {Promise<Object>} - The API response
    */
   async fetchShippingRates(requestBody) {
+    // Diagnostic: keep the last request and a summary of what came back, so the
+    // body actually sent can be read without trawling deploy logs.
+    try {
+      module.exports.lastCall = {
+        at: new Date().toISOString(),
+        request: JSON.parse(JSON.stringify(requestBody))
+      };
+    } catch (e) { /* diagnostics must never break a quote */ }
+
     const timestamp = Date.now().toString();
     
     // Wrap request body exactly like Google Apps Script: { size: 50, current: 1, item: requestBody }
@@ -124,6 +133,17 @@ class BuckyDropService {
       }
 
       logger.info(`✅ API call successful! Records: ${jsonResponse.data?.records?.length || 0}`);
+      try {
+        const recs = jsonResponse.data?.records || [];
+        const priced = recs.filter(r => r.totalPrice !== null && r.totalPrice !== 0);
+        module.exports.lastCall = Object.assign(module.exports.lastCall || {}, {
+          recordCount: recs.length,
+          pricedCount: priced.length,
+          cheapest: priced.length
+            ? priced.reduce((a, b) => (a.totalPrice <= b.totalPrice ? a : b))
+            : null
+        });
+      } catch (e) { /* diagnostics must never break a quote */ }
       return jsonResponse;
     } catch (error) {
       logger.error(`═══════════════════════════════════════════════════════════`);
@@ -179,4 +199,5 @@ class BuckyDropService {
 }
 
 module.exports = BuckyDropService;
+module.exports.lastCall = null;
 
