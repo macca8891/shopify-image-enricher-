@@ -1577,20 +1577,36 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         addProcessingLog(`💾 Cache MISS - will calculate rates`, { cacheCheckTime });
 
         // STEP 3: Calculate shipping ONCE for the combined cart
+        // BuckyDrop multiplies by `count`, which is sent as the cart quantity, and
+        // combinedDimensions are deliberately single-item for that reason. The
+        // weight has to match: combinedWeight is the WHOLE cart, so sending it
+        // here made BuckyDrop charge for quantity squared. Ten units of a 1.07 kg
+        // filter quoted CNY 5,415 instead of CNY 230, and at twenty units no
+        // route came back at all, which left the customer unable to check out.
+        const perItemWeight = totalQuantity > 0
+            ? Number((combinedWeight / totalQuantity).toFixed(3))
+            : combinedWeight;
+
         const combinedProduct = {
             title: `Cart with ${processedItems.length} items`,
             variants: [{
-                weight: combinedWeight,
+                weight: perItemWeight,
                 weight_unit: 'kg'
             }]
         };
 
         // Create combined metafields object with largest dimensions
         const combinedMetafields = [
-            { namespace: 'custom', key: 'weight_raw_kg_', value: combinedWeight.toString() },
+            { namespace: 'custom', key: 'weight_raw_kg_', value: perItemWeight.toString() },
             { namespace: 'custom', key: 'height_raw', value: combinedDimensions.height.toString() },
             { namespace: 'custom', key: 'largest_diameter_raw', value: combinedDimensions.length.toString() }
         ];
+
+        addProcessingLog(`⚖️ Weight per item for BuckyDrop`, {
+            cartWeightKg: combinedWeight,
+            totalQuantity,
+            perItemWeightKg: perItemWeight
+        });
 
         // Collect all valid routes
         const allAvailableRoutes = [];
