@@ -98,6 +98,7 @@ router.post('/', async (req, res) => {
                 code: String(l && l.code || '').trim().slice(0, 120),
                 brand: String(l && l.brand || '').trim().slice(0, 120),
                 machine: String(l && l.machine || '').trim().slice(0, 200),
+                title: String(l && l.title || '').trim().slice(0, 300),
                 qty: String(l && l.qty || '').trim().slice(0, 20)
             }))
             .filter(l => l.code || l.brand || l.machine);

@@ -48,6 +48,9 @@ const QuoteRequestSchema = new mongoose.Schema({
         code: { type: String, trim: true, maxlength: 120 },
         brand: { type: String, trim: true, maxlength: 120 },
         machine: { type: String, trim: true, maxlength: 200 },
+        // The product's own name, when the request came from a cart. Used as
+        // the invoice description so it reads like what they actually bought.
+        title: { type: String, trim: true, maxlength: 300 },
         qty: { type: String, trim: true, maxlength: 20 }
     }],
 
