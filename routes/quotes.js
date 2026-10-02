@@ -115,6 +115,12 @@ router.post('/', async (req, res) => {
             province: (b.province || '').trim(),
             zip: (b.zip || '').trim(),
             poNumber: (b.poNumber || '').trim(),
+            shippingChoice: (b.shippingChoice && b.shippingChoice.service) ? {
+                service: String(b.shippingChoice.service).slice(0, 120),
+                price: Number(b.shippingChoice.price) || 0,
+                minDays: Number(b.shippingChoice.minDays) || null,
+                maxDays: Number(b.shippingChoice.maxDays) || null
+            } : undefined,
             machine: (b.machine || '').trim(),
             quantity: (b.quantity || '').trim(),
             notes: (b.notes || '').trim(),
