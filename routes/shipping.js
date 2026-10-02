@@ -1051,8 +1051,21 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                     grams: grams,
                     name: name
                 });
+            } else if (grams > 0) {
+                // No ids, but a real weight. Dropping these emptied the cart and
+                // quoted a 0 kg parcel, which is what made /probe report the same
+                // freight at every weight. Without ids there is no metafield
+                // lookup, so the cart's own grams are used.
+                logger.info(`  Item without ids, using cart weight: quantity=${quantity}, grams=${grams}`);
+                processedItems.push({
+                    product_id: null,
+                    variant_id: null,
+                    quantity: quantity,
+                    grams: grams,
+                    name: name
+                });
             } else {
-                logger.warn(`  Item missing product_id and variant_id: ${JSON.stringify(item).substring(0, 200)}`);
+                logger.warn(`  Item missing product_id, variant_id and weight: ${JSON.stringify(item).substring(0, 200)}`);
             }
         }
         
