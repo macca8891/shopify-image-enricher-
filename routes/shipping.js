@@ -3639,6 +3639,56 @@ router.post('/prewarm', express.json(), async (req, res) => {
 });
 
 /**
+ * POST /api/shipping/estimate
+ * Shipping calculator on the product page (Michael, 2026-10-05). Runs the SAME checkout quote (carrier-service),
+ * so the product page and checkout always agree, then converts CNY to USD at the day's ECB rate
+ * (Shopify converts at its own rate at checkout, so the page calls these estimates).
+ * Body: { country, product_id, variant_id, quantity, grams }
+ */
+let fxCache = { rate: null, ts: 0 };
+async function cnyToUsd() {
+    if (fxCache.rate && Date.now() - fxCache.ts < 12 * 3600 * 1000) return fxCache.rate;
+    try {
+        const r = await axios.get('https://api.frankfurter.app/latest?from=CNY&to=USD', { timeout: 8000 });
+        const rate = r.data && r.data.rates && r.data.rates.USD;
+        if (rate) fxCache = { rate, ts: Date.now() };
+    } catch (e) {
+        logger.warn(`FX fetch failed, using last known rate: ${e.message}`);
+    }
+    return fxCache.rate || 0.14;
+}
+router.post('/estimate', express.json(), async (req, res) => {
+    try {
+        const { country, product_id, variant_id, quantity, grams } = req.body || {};
+        const cc = String(country || '').toUpperCase();
+        if (!/^[A-Z]{2}$/.test(cc) || !product_id) return res.status(400).json({ error: 'country and product_id are required' });
+        const qty = Math.min(Math.max(parseInt(quantity, 10) || 1, 1), 500);
+        const port = process.env.PORT || 3001;
+        const shop = 'spare-part-mart.myshopify.com';
+        const r = await axios.post(`http://127.0.0.1:${port}/api/shipping/carrier-service?shop=${shop}`, {
+            rate: {
+                origin: { country: 'CN', postal_code: '518000' },
+                destination: { country: cc, country_code: cc, postal_code: '', province: '' },
+                items: [{ name: 'estimate', product_id, variant_id: variant_id || product_id, quantity: qty,
+                          grams: parseInt(grams, 10) || 0, price: 0, requires_shipping: true }],
+                currency: 'USD'
+            }
+        }, { timeout: 60000 });
+        const fx = await cnyToUsd();
+        const rates = ((r.data && r.data.rates) || []).map(x => {
+            const amount = parseInt(x.total_price, 10) / 100;
+            const usd = x.currency === 'USD' ? amount : amount * fx;
+            return { name: x.service_name, usd: Math.round(usd * 100) / 100, min_date: x.min_delivery_date, max_date: x.max_delivery_date };
+        }).sort((a, b) => a.usd - b.usd);
+        res.set('Cache-Control', 'no-store');
+        res.json({ country: cc, quantity: qty, rates, fx_cny_usd: fx });
+    } catch (error) {
+        logger.error('estimate error:', error.message);
+        res.status(502).json({ error: 'Could not get shipping rates right now' });
+    }
+});
+
+/**
  * GET /api/shipping/cache-stats
  * Visibility into how well the rate cache is working.
  */
