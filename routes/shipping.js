@@ -68,7 +68,7 @@ function invalidateSettingsCache(shop) {
     settingsCache.delete(shop);
 }
 
-function rateCacheKey(shopDomain, countryCode, weightKg, dims, productInfo) {
+function rateCacheKey(shopDomain, countryCode, weightKg, dims, productInfo, postcode) {
     // Round so trivially different carts share an entry. 10g of weight and a
     // millimetre of size are finer than BuckyDrop's own pricing steps.
     const w = Number(weightKg || 0).toFixed(2);
@@ -76,7 +76,10 @@ function rateCacheKey(shopDomain, countryCode, weightKg, dims, productInfo) {
     const l = Math.round((dims && dims.length) || 0);
     const wd = Math.round((dims && dims.width) || 0);
     const flags = `${productInfo && productInfo.isClothing ? 1 : 0}${productInfo && productInfo.isBattery ? 1 : 0}`;
-    return `${shopDomain}|${countryCode}|${w}|${h}x${l}x${wd}|${flags}`;
+    // BuckyDrop prices by postcode (remote areas cost far more: Sydney CNY 71 vs Alice Springs CNY 90+, London 62 vs
+    // Orkney 83, tested 2026-10-05), so the postcode must be part of the key or one customer's quote is served to another.
+    const pc = String(postcode || '').toUpperCase().replace(/\s+/g, '');
+    return `${shopDomain}|${countryCode}|${pc}|${w}|${h}x${l}x${wd}|${flags}`;
 }
 
 function getCachedRates(key) {
@@ -1653,7 +1656,7 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             try {
                 // PERF: reuse a recent real quote for the same shipment rather than
                 // paying another ~2s round trip. Filtering still runs on the result.
-                const rateKey = rateCacheKey(shopDomain, targetCountry.code, combinedWeight, combinedDimensions, productInfo);
+                const rateKey = rateCacheKey(shopDomain, targetCountry.code, combinedWeight, combinedDimensions, productInfo, targetCountry.postcode);
                 const cachedRate = getCachedRates(rateKey);
 
                 if (cachedRate) {
@@ -3643,7 +3646,7 @@ router.post('/prewarm', express.json(), async (req, res) => {
  * Shipping calculator on the product page (Michael, 2026-10-05). Runs the SAME checkout quote (carrier-service),
  * so the product page and checkout always agree, then converts CNY to USD at the day's ECB rate
  * (Shopify converts at its own rate at checkout, so the page calls these estimates).
- * Body: { country, product_id, variant_id, quantity, grams }
+ * Body: { country, postal_code, product_id, variant_id, quantity, grams }  (postcode matters: remote areas cost more)
  */
 let fxCache = { rate: null, ts: 0 };
 async function cnyToUsd() {
@@ -3659,7 +3662,8 @@ async function cnyToUsd() {
 }
 router.post('/estimate', express.json(), async (req, res) => {
     try {
-        const { country, product_id, variant_id, quantity, grams } = req.body || {};
+        const { country, product_id, variant_id, quantity, grams, postal_code } = req.body || {};
+        const pc = String(postal_code || '').trim().slice(0, 12);
         const cc = String(country || '').toUpperCase();
         if (!/^[A-Z]{2}$/.test(cc) || !product_id) return res.status(400).json({ error: 'country and product_id are required' });
         const qty = Math.min(Math.max(parseInt(quantity, 10) || 1, 1), 500);
@@ -3668,7 +3672,7 @@ router.post('/estimate', express.json(), async (req, res) => {
         const r = await axios.post(`http://127.0.0.1:${port}/api/shipping/carrier-service?shop=${shop}`, {
             rate: {
                 origin: { country: 'CN', postal_code: '518000' },
-                destination: { country: cc, country_code: cc, postal_code: '', province: '' },
+                destination: { country: cc, country_code: cc, postal_code: pc, province: '' },
                 items: [{ name: 'estimate', product_id, variant_id: variant_id || product_id, quantity: qty,
                           grams: parseInt(grams, 10) || 0, price: 0, requires_shipping: true }],
                 currency: 'USD'
@@ -3681,7 +3685,7 @@ router.post('/estimate', express.json(), async (req, res) => {
             return { name: x.service_name, usd: Math.round(usd * 100) / 100, min_date: x.min_delivery_date, max_date: x.max_delivery_date };
         }).sort((a, b) => a.usd - b.usd);
         res.set('Cache-Control', 'no-store');
-        res.json({ country: cc, quantity: qty, rates, fx_cny_usd: fx });
+        res.json({ country: cc, postal_code: pc, quantity: qty, rates, fx_cny_usd: fx });
     } catch (error) {
         logger.error('estimate error:', error.message);
         res.status(502).json({ error: 'Could not get shipping rates right now' });
