@@ -116,6 +116,7 @@ router.post('/', async (req, res) => {
             province: (b.province || '').trim(),
             zip: (b.zip || '').trim(),
             poNumber: (b.poNumber || '').trim(),
+            marketingOptIn: b.marketingOptIn === true || b.marketingOptIn === 'true' || b.marketingOptIn === 'on',
             shippingChoice: (b.shippingChoice && b.shippingChoice.service) ? {
                 service: String(b.shippingChoice.service).slice(0, 120),
                 price: Number(b.shippingChoice.price) || 0,

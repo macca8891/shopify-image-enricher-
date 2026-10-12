@@ -30,6 +30,10 @@ const QuoteRequestSchema = new mongoose.Schema({
     // The buyer's own PO, printed on the proforma as their reference
     poNumber: { type: String, trim: true, maxlength: 60 },
 
+    // Unticked-by-default 'Email me reorder reminders and offers' box (board, 13 Oct 2026).
+    // true only when the buyer ticked it; the desk records it as email marketing consent.
+    marketingOptIn: { type: Boolean, default: false },
+
     // The shipping service they picked on the cart. The proforma uses this
     // rather than re-quoting, so the invoice matches what they were shown.
     shippingChoice: {
