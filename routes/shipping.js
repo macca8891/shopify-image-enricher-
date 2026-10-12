@@ -102,6 +102,71 @@ function setCachedRates(key, result) {
     rateCache.set(key, { result, storedAt: Date.now(), expires: Date.now() + RATE_CACHE_TTL_MS });
 }
 
+// RESILIENCE: BuckyDrop occasionally answers with success=false or no routes
+// (a few percent of calls under load). With no other carrier, one bad answer
+// meant "Shipping not available" and a lost checkout. On a miss we retry once,
+// and if that also fails we serve the last good BuckyDrop answer for the same
+// country and weight band from the past 15 minutes. Still a real quote, never
+// a modelled price.
+const LAST_GOOD_TTL_MS = 15 * 60 * 1000;
+const LAST_GOOD_MAX = 500;
+const lastGoodRates = new Map();
+
+function weightBand(weightKg) {
+    const w = Number(weightKg || 0);
+    if (w <= 2) return Math.ceil(w / 0.25) * 0.25;
+    if (w <= 10) return Math.ceil(w / 0.5) * 0.5;
+    return Math.ceil(w);
+}
+
+function lastGoodKey(shopDomain, countryCode, weightKg) {
+    return `${shopDomain}|${countryCode}|${weightBand(weightKg).toFixed(2)}`;
+}
+
+function hasRoutes(result) {
+    return !!(result && Array.isArray(result.allRoutes) && result.allRoutes.length > 0);
+}
+
+function setLastGood(key, result) {
+    if (!hasRoutes(result)) return;
+    lastGoodRates.delete(key);
+    if (lastGoodRates.size >= LAST_GOOD_MAX) {
+        lastGoodRates.delete(lastGoodRates.keys().next().value);
+    }
+    lastGoodRates.set(key, { result, storedAt: Date.now() });
+}
+
+function getLastGood(key) {
+    const hit = lastGoodRates.get(key);
+    if (!hit) return null;
+    if (Date.now() - hit.storedAt > LAST_GOOD_TTL_MS) {
+        lastGoodRates.delete(key);
+        return null;
+    }
+    return { result: hit.result, ageMs: Date.now() - hit.storedAt };
+}
+
+// Processing time before a parcel leaves the consolidation warehouse, per the
+// shipping policy ("1 to 5 business days to verify and prepare for dispatch").
+const PROCESSING_DAYS_MIN = 1;
+const PROCESSING_DAYS_MAX = 5;
+
+function addBusinessDays(date, days) {
+    const d = new Date(date.getTime());
+    let left = days;
+    while (left > 0) {
+        d.setUTCDate(d.getUTCDate() + 1);
+        const wd = d.getUTCDay();
+        if (wd !== 0 && wd !== 6) left--;
+    }
+    return d;
+}
+
+function shopifyDeliveryDate(date) {
+    // Carrier service format, e.g. "2013-04-12 14:48:45 +0000"
+    return date.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' +0000');
+}
+
 function getCachedMetafields(productId) {
     const hit = metafieldCache.get(productId);
     if (!hit) return null;
@@ -1668,14 +1733,42 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                         routes: consolidatedResult.allRoutes.length
                     });
                 } else {
-                    consolidatedResult = await shippingService.calculateProductShipping(
-                        combinedProduct,
-                        combinedMetafields,
-                        targetCountry,
-                        totalQuantity
-                    );
-                    setCachedRates(rateKey, consolidatedResult);
-                    addProcessingLog(`💾 Rate cache MISS - stored`, { key: rateKey });
+                    const goodKey = lastGoodKey(shopDomain, targetCountry.code, combinedWeight);
+                    let lastError = null;
+                    for (let attempt = 1; attempt <= 2; attempt++) {
+                        try {
+                            consolidatedResult = await shippingService.calculateProductShipping(
+                                combinedProduct,
+                                combinedMetafields,
+                                targetCountry,
+                                totalQuantity
+                            );
+                            lastError = null;
+                        } catch (attemptError) {
+                            lastError = attemptError;
+                            consolidatedResult = null;
+                        }
+                        if (hasRoutes(consolidatedResult)) break;
+                        if (attempt === 1) {
+                            logger.warn(`🔁 BuckyDrop returned no routes for ${rateKey}, retrying once`);
+                            addProcessingLog(`🔁 BuckyDrop returned no routes, retrying once`, { key: rateKey, error: lastError ? lastError.message : null });
+                            await new Promise(resolve => setTimeout(resolve, 400));
+                        }
+                    }
+                    if (hasRoutes(consolidatedResult)) {
+                        setCachedRates(rateKey, consolidatedResult);
+                        setLastGood(goodKey, consolidatedResult);
+                        addProcessingLog(`💾 Rate cache MISS - stored`, { key: rateKey });
+                    } else {
+                        const fallback = getLastGood(goodKey);
+                        if (fallback) {
+                            consolidatedResult = fallback.result;
+                            logger.warn(`🛟 BuckyDrop failed twice; serving last good rates for ${goodKey} (age ${Math.round(fallback.ageMs / 1000)}s)`);
+                            addProcessingLog(`🛟 Served last good rates after two failed BuckyDrop calls`, { key: goodKey, ageSeconds: Math.round(fallback.ageMs / 1000) });
+                        } else if (lastError) {
+                            throw lastError;
+                        }
+                    }
                 }
                 console.log(`🔵 BUCKYDROP API CALL SUCCESS`);
                 console.log(`   Result type: ${typeof consolidatedResult}`);
@@ -2881,19 +2974,21 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             const priceCents = Math.round(priceWithBuffer * 100);
             logger.info(`    Route: ${route.service_name} | Price: ${route.priceFinal.toFixed(2)} ${route.currency} → ${priceWithBuffer.toFixed(2)} ${route.currency} (+13%) = ${priceCents} cents`);
             
-            // Calculate delivery dates from transit days
-            const minDate = new Date();
-            minDate.setDate(minDate.getDate() + route.minDays);
-            const maxDate = new Date();
-            maxDate.setDate(maxDate.getDate() + route.maxDays);
+            // Delivery window = processing time (the shipping policy promises 1 to 5
+            // business days to verify and prepare for dispatch) + the route's transit.
+            // Shopify ignores a bare date here; it needs "YYYY-MM-DD HH:MM:SS +0000".
+            const minDate = addBusinessDays(new Date(), PROCESSING_DAYS_MIN);
+            minDate.setUTCDate(minDate.getUTCDate() + (Number(route.minDays) || 5));
+            const maxDate = addBusinessDays(new Date(), PROCESSING_DAYS_MAX);
+            maxDate.setUTCDate(maxDate.getUTCDate() + (Number(route.maxDays) || 15));
             
             const rateEntry = {
                 service_name: route.service_name, // No suffix
                 service_code: route.service_code,
                 total_price: priceCents.toString(), // Ensure total_price is a string in cents
                 currency: route.currency,
-                min_delivery_date: minDate.toISOString().split('T')[0],
-                max_delivery_date: maxDate.toISOString().split('T')[0],
+                min_delivery_date: shopifyDeliveryDate(minDate),
+                max_delivery_date: shopifyDeliveryDate(maxDate),
             };
             
             responseJson.rates.push(rateEntry);
@@ -3682,7 +3777,7 @@ router.post('/estimate', express.json(), async (req, res) => {
         const rates = ((r.data && r.data.rates) || []).map(x => {
             const amount = parseInt(x.total_price, 10) / 100;
             const usd = x.currency === 'USD' ? amount : amount * fx;
-            return { name: x.service_name, usd: Math.round(usd * 100) / 100, min_date: x.min_delivery_date, max_date: x.max_delivery_date };
+            return { name: x.service_name, usd: Math.round(usd * 100) / 100, min_date: String(x.min_delivery_date || '').slice(0, 10), max_date: String(x.max_delivery_date || '').slice(0, 10) };
         }).sort((a, b) => a.usd - b.usd);
         res.set('Cache-Control', 'no-store');
         res.json({ country: cc, postal_code: pc, quantity: qty, rates, fx_cny_usd: fx });
@@ -3707,7 +3802,8 @@ router.get('/cache-stats', (req, res) => {
     res.json({
         success: true,
         rateCache: { size: rateCache.size, ttlMinutes: RATE_CACHE_TTL_MS / 60000, entries: entries.slice(0, 50) },
-        metafieldCache: { size: metafieldCache.size, ttlMinutes: METAFIELD_CACHE_TTL_MS / 60000 }
+        metafieldCache: { size: metafieldCache.size, ttlMinutes: METAFIELD_CACHE_TTL_MS / 60000 },
+        lastGoodRates: { size: lastGoodRates.size, ttlMinutes: LAST_GOOD_TTL_MS / 60000, keys: [...lastGoodRates.keys()].slice(0, 50) }
     });
 });
 
