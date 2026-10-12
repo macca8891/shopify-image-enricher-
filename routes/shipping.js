@@ -4167,7 +4167,7 @@ router.get('/options-analysis', (req, res) => {
  */
 router.post('/probe', express.json(), async (req, res) => {
     try {
-        const { shop, country = 'AU', postalCode = '3195', province = 'VIC', grams = 500 } = req.body;
+        const { shop, country = 'AU', postalCode = '3195', province = 'VIC', grams = 500, items } = req.body;
         if (!shop) {
             return res.status(400).json({ error: 'Shop domain required' });
         }
@@ -4186,7 +4186,20 @@ router.post('/probe', express.json(), async (req, res) => {
                     postal_code: postalCode,
                     province: province
                 },
-                items: [{
+                // Real cart lines (product_id, variant_id, quantity) are priced exactly
+                // as checkout prices them, with each part's own weight and box size from
+                // its metafields. Without them the probe is one item of `grams`, which
+                // the proforma used to send for every order (board, 13 Oct 2026).
+                items: (Array.isArray(items) && items.length) ? items.map(it => ({
+                    name: it.name || it.sku || 'Item',
+                    quantity: Math.max(1, parseInt(it.quantity, 10) || 1),
+                    grams: Number(it.grams) || 0,
+                    price: Number(it.price) || 2500,
+                    requires_shipping: true,
+                    sku: it.sku || '',
+                    product_id: it.product_id ? Number(it.product_id) : undefined,
+                    variant_id: it.variant_id ? Number(it.variant_id) : undefined
+                })) : [{
                     name: 'Probe item',
                     quantity: 1,
                     grams: Number(grams) || 500,
