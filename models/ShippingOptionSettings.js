@@ -22,6 +22,15 @@ const ShippingOptionSettingsSchema = new mongoose.Schema({
 
     autoFiltersEnabled: { type: Boolean, default: true },
 
+    // Some BuckyDrop services price on volumetric weight only
+    // (calculateWeightType = 1) and ignore the parcel's actual weight. For a
+    // dense item like a filter that produces a quote far below what the
+    // weight-based carriers charge, which we would absorb. When this is on,
+    // a route is dropped if the weight it charges on is below the parcel's
+    // actual weight by more than the ratio allows.
+    volumetricGuard: { type: Boolean, default: false },
+    volumetricGuardRatio: { type: Number, default: 0.95 },
+
     updatedAt: { type: Date, default: Date.now }
 });
 
@@ -36,7 +45,14 @@ ShippingOptionSettingsSchema.pre('save', function (next) {
  * carrier service must keep quoting rates even if this lookup fails.
  */
 ShippingOptionSettingsSchema.statics.forShop = async function (shop) {
-    const defaults = { shop, disabledServices: [], forcedServices: [], autoFiltersEnabled: true };
+    const defaults = {
+        shop,
+        disabledServices: [],
+        forcedServices: [],
+        autoFiltersEnabled: true,
+        volumetricGuard: false,
+        volumetricGuardRatio: 0.95
+    };
 
     if (mongoose.connection.readyState !== 1) {
         return defaults;

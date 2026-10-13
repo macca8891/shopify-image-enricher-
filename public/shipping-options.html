@@ -108,6 +108,14 @@
                 </span>
                 <span><strong>Automatic filtering rules</strong> — when on, the app hides options it judges redundant (dominated, duplicate price, similar delivery time, within 10% of a faster option, duplicate carrier). Turn off to show customers every route.</span>
             </label>
+
+            <label style="display:inline-flex;align-items:flex-start;gap:9px;text-transform:none;font-size:13px;letter-spacing:0;color:#202223;cursor:pointer;margin-top:14px">
+                <span class="switch">
+                    <input type="checkbox" id="volGuard" onchange="saveSettings()">
+                    <span class="slider"></span>
+                </span>
+                <span><strong>Hide volume-priced services on heavy parcels</strong> &mdash; a few carriers price on box size and ignore what the parcel weighs. On a dense item like a filter that quotes far below what weight-based carriers charge, and the difference comes out of your margin. Affects US routes only on current data.</span>
+            </label>
         </div>
     </div>
 
@@ -135,7 +143,7 @@
     </div>
 
 <script>
-let settings = { disabledServices: [], forcedServices: [], autoFiltersEnabled: true };
+let settings = { disabledServices: [], forcedServices: [], autoFiltersEnabled: true, volumetricGuard: false };
 let currentRoutes = [];
 
 const $ = id => document.getElementById(id);
@@ -165,7 +173,9 @@ async function loadSettings() {
             settings.disabledServices = data.disabledServices || [];
             settings.forcedServices = data.forcedServices || [];
             settings.autoFiltersEnabled = data.autoFiltersEnabled !== false;
+            settings.volumetricGuard = data.volumetricGuard === true;
             $('autoFilters').checked = settings.autoFiltersEnabled;
+            if ($('volGuard')) $('volGuard').checked = settings.volumetricGuard;
         }
     } catch (err) {
         banner('Could not load saved settings: ' + err.message, 'err');
@@ -174,6 +184,7 @@ async function loadSettings() {
 
 async function saveSettings() {
     settings.autoFiltersEnabled = $('autoFilters').checked;
+    if ($('volGuard')) settings.volumetricGuard = $('volGuard').checked;
     try {
         const res = await fetch('/api/shipping/option-settings', {
             method: 'POST',
@@ -182,13 +193,15 @@ async function saveSettings() {
                 shop: shopName(),
                 disabledServices: settings.disabledServices,
                 forcedServices: settings.forcedServices,
-                autoFiltersEnabled: settings.autoFiltersEnabled
+                autoFiltersEnabled: settings.autoFiltersEnabled,
+                volumetricGuard: settings.volumetricGuard
             })
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Save failed');
         settings.disabledServices = data.disabledServices || [];
         settings.forcedServices = data.forcedServices || [];
+        settings.volumetricGuard = data.volumetricGuard === true;
         banner('Saved — live at checkout now.', 'ok');
         render();
     } catch (err) {

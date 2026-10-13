@@ -2170,6 +2170,16 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             logger.info(`⏱️ Timing breakdown: Shopify APIs=${shopifyApiTime}ms, BuckyDrop=${buckyDropTime}ms (Consolidated=${consolidatedTime}ms, Individual=${individualTime}ms), Before processing=${timeBeforeProcessing}ms`);
 
             // Collect all valid routes
+            // Settings are needed before the route loop for the volumetric guard.
+            // getShippingOptionSettings is cached, so the later read for the
+            // disabled/forced lists costs nothing extra.
+            const guardSettings = await getShippingOptionSettings(shopDomain);
+            const volumetricGuardEnabled = guardSettings.volumetricGuard === true;
+            const volumetricGuardRatio = Number(guardSettings.volumetricGuardRatio) > 0
+                ? Number(guardSettings.volumetricGuardRatio)
+                : 0.95;
+            const volumetricGuardSkipped = [];
+
             let routesToProcess = [];
             console.log('🔵 BUCKYDROP RESULT CHECK:');
             console.log(`   consolidatedResult: ${consolidatedResult ? 'EXISTS' : 'NULL'}`);
@@ -2243,6 +2253,31 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                     addProcessingLog(`⏭️ Skipped route: ${routeName} (available=${route.available}, price=${route.totalPrice})`);
                     routesSkipped++;
                     continue;
+                }
+
+                // Volumetric guard: some services charge on volumetric weight only
+                // (calculateWeightType = 1) and ignore what the parcel actually
+                // weighs. On a dense item that quotes far below what the
+                // weight-based carriers charge, and we absorb the difference.
+                // BuckyDrop reports both numbers, so compare them directly.
+                if (volumetricGuardEnabled) {
+                    const chargedW = Number(route.calculateWeight);
+                    const actualW = Number(route.parcelTotalWeight);
+                    if (Number.isFinite(chargedW) && Number.isFinite(actualW) && actualW > 0 &&
+                        chargedW < actualW * volumetricGuardRatio) {
+                        const reason = `charges on ${chargedW}kg but the parcel weighs ${actualW}kg`;
+                        console.log(`   ⚠️ Volumetric guard skipped: ${routeName} (${reason})`);
+                        logger.warn(`  ⚠️ Volumetric guard skipped ${routeName}: ${reason}`);
+                        addProcessingLog(`⚠️ Volumetric guard skipped route`, {
+                            routeName,
+                            chargedWeightKg: chargedW,
+                            actualWeightKg: actualW,
+                            price: route.totalPrice
+                        });
+                        volumetricGuardSkipped.push({ name: routeName, chargedW, actualW, price: route.totalPrice });
+                        routesSkipped++;
+                        continue;
+                    }
                 }
                 routesAdded++;
                 console.log(`   ✅ Processing: ${routeName} (price=${route.totalPrice})`);
@@ -4075,7 +4110,9 @@ router.get('/option-settings', async (req, res) => {
             shop: shop,
             disabledServices: settings.disabledServices || [],
             forcedServices: settings.forcedServices || [],
-            autoFiltersEnabled: settings.autoFiltersEnabled !== false
+            autoFiltersEnabled: settings.autoFiltersEnabled !== false,
+            volumetricGuard: settings.volumetricGuard === true,
+            volumetricGuardRatio: Number(settings.volumetricGuardRatio) || 0.95
         });
     } catch (error) {
         logger.error('Get option settings error:', error);
@@ -4090,7 +4127,8 @@ router.get('/option-settings', async (req, res) => {
  */
 router.post('/option-settings', express.json(), async (req, res) => {
     try {
-        const { shop, disabledServices, forcedServices, autoFiltersEnabled } = req.body;
+        const { shop, disabledServices, forcedServices, autoFiltersEnabled,
+                volumetricGuard, volumetricGuardRatio } = req.body;
         if (!shop) {
             return res.status(400).json({ error: 'Shop domain required' });
         }
@@ -4110,6 +4148,8 @@ router.post('/option-settings', express.json(), async (req, res) => {
                 disabledServices: cleanedDisabled,
                 forcedServices: cleanedForced,
                 autoFiltersEnabled: autoFiltersEnabled !== false,
+                volumetricGuard: volumetricGuard === true,
+                volumetricGuardRatio: Number(volumetricGuardRatio) > 0 ? Number(volumetricGuardRatio) : 0.95,
                 updatedAt: new Date()
             },
             { upsert: true, new: true, setDefaultsOnInsert: true }
@@ -4125,7 +4165,9 @@ router.post('/option-settings', express.json(), async (req, res) => {
             success: true,
             disabledServices: saved.disabledServices,
             forcedServices: saved.forcedServices,
-            autoFiltersEnabled: saved.autoFiltersEnabled
+            autoFiltersEnabled: saved.autoFiltersEnabled,
+            volumetricGuard: saved.volumetricGuard === true,
+            volumetricGuardRatio: saved.volumetricGuardRatio
         });
     } catch (error) {
         logger.error('Save option settings error:', error);
