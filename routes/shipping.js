@@ -221,6 +221,20 @@ function weightKgFromMetafields(metafields) {
     return parsed;
 }
 
+/**
+ * Pieces per cart line for pack products ("2 Pack", "10 Pack"). The weight
+ * metafield is per piece, but about 920 products are sold as packs, so a
+ * 2 Pack was quoted on one piece (board, 15 Oct 2026). Every pack variant is
+ * named "<n> Pack" (the buckydrop.pack_qty metafield mirrors it), and Shopify
+ * sends that in the line's name / variant_title. Single items return 1.
+ */
+function packQtyFromItem(item) {
+    const text = [item && item.variant_title, item && item.name].filter(Boolean).join(' ');
+    const m = text.match(/\b(\d{1,3})\s*-?\s*pack\b/i);
+    const n = m ? parseInt(m[1], 10) : 1;
+    return Number.isFinite(n) && n >= 1 && n <= 500 ? n : 1;
+}
+
 function addProcessingLog(message, data = null) {
     const logEntry = {
         timestamp: new Date().toISOString(),
@@ -1377,10 +1391,13 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             }
             
             // Prefer the curated weight metafield over the Shopify variant weight.
+            // The metafield is per piece: multiply by the pack size. The variant
+            // weight fallback already holds the whole pack's weight.
+            const packQty = packQtyFromItem(item);
             const metafieldWeightKg = weightKgFromMetafields(metafields);
             if (metafieldWeightKg !== null) {
-                weightKg = metafieldWeightKg * quantity;
-                weightSource = 'metafield';
+                weightKg = metafieldWeightKg * packQty * quantity;
+                weightSource = packQty > 1 ? `metafield x${packQty} pack` : 'metafield';
             }
 
             addProcessingLog(`📦 Product ${index + 1} data`, {
@@ -1389,14 +1406,15 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                 weightKg: weightKg.toFixed(3),
                 weightSource: weightSource,
                 variantWeightKg: variantWeightKg.toFixed(3),
-                metafieldWeightKg: metafieldWeightKg === null ? null : (metafieldWeightKg * quantity).toFixed(3),
+                metafieldWeightKg: metafieldWeightKg === null ? null : (metafieldWeightKg * packQty * quantity).toFixed(3),
+                packQty: packQty,
                 isClothing: isClothing,
                 isBattery: isBattery,
                 metafieldsCount: metafields.length,
                 dbFound: dbFound
             });
 
-            if (weightSource === 'metafield' && Math.abs(weightKg - variantWeightKg) > 0.01) {
+            if (weightSource.startsWith('metafield') && Math.abs(weightKg - variantWeightKg) > 0.01) {
                 logger.info(`  ⚖️ ${item.name}: using metafield weight ${weightKg.toFixed(3)}kg (variant said ${variantWeightKg.toFixed(3)}kg)`);
             } else if (weightSource === 'variant') {
                 logger.warn(`  ⚖️ ${item.name}: no usable weight_raw_kg_ metafield, falling back to variant weight ${variantWeightKg.toFixed(3)}kg`);
