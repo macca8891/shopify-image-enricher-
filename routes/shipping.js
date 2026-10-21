@@ -3051,10 +3051,10 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             
             // Delivery window = processing time (PROCESSING_DAYS_*, currently 0) + the route's transit.
             // Shopify ignores a bare date here; it needs "YYYY-MM-DD HH:MM:SS +0000".
-            const minDate = addBusinessDays(new Date(), PROCESSING_DAYS_MIN);
-            minDate.setUTCDate(minDate.getUTCDate() + (Number(route.minDays) || 5));
-            const maxDate = addBusinessDays(new Date(), PROCESSING_DAYS_MAX);
-            maxDate.setUTCDate(maxDate.getUTCDate() + (Number(route.maxDays) || 15));
+            // Transit is counted in business days (Michael, 22 Oct 2026): Shopify words the
+            // window as "X to Y business days", so this makes X and Y the route's own numbers.
+            const minDate = addBusinessDays(new Date(), PROCESSING_DAYS_MIN + (Number(route.minDays) || 5));
+            const maxDate = addBusinessDays(new Date(), PROCESSING_DAYS_MAX + (Number(route.maxDays) || 15));
             
             const rateEntry = {
                 service_name: route.service_name, // No suffix
