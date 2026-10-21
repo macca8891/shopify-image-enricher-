@@ -163,6 +163,21 @@ function addBusinessDays(date, days) {
     return d;
 }
 
+// Shopify words the window as business days counted from the shopper's own date. Counting
+// from the UTC date put Australian and New Zealand shoppers a day out (it is already tomorrow
+// there), so start from the destination's local date. Rough offsets are close enough for a day count.
+const DEST_UTC_OFFSET_HOURS = {
+    AU: 10, NZ: 12, JP: 9, KR: 9, CN: 8, HK: 8, TW: 8, SG: 8, MY: 8, PH: 8, ID: 7, TH: 7, VN: 7, IN: 5.5,
+    AE: 4, SA: 3, QA: 3, IL: 2, ZA: 2, GB: 0, IE: 0, PT: 0, US: -5, CA: -5, MX: -6, BR: -3, AR: -3, CL: -4, CO: -5, PE: -5
+};
+function destinationToday(countryCode) {
+    const cc = String(countryCode || '').toUpperCase();
+    const off = cc in DEST_UTC_OFFSET_HOURS ? DEST_UTC_OFFSET_HOURS[cc] : 1;   // default: central Europe
+    const local = new Date(Date.now() + off * 3600 * 1000);
+    // noon UTC on the destination's calendar date, so the date part never shifts again
+    return new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate(), 12));
+}
+
 function shopifyDeliveryDate(date) {
     // Carrier service format, e.g. "2013-04-12 14:48:45 +0000"
     return date.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' +0000');
@@ -3053,8 +3068,9 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             // Shopify ignores a bare date here; it needs "YYYY-MM-DD HH:MM:SS +0000".
             // Transit is counted in business days (Michael, 22 Oct 2026): Shopify words the
             // window as "X to Y business days", so this makes X and Y the route's own numbers.
-            const minDate = addBusinessDays(new Date(), PROCESSING_DAYS_MIN + (Number(route.minDays) || 5));
-            const maxDate = addBusinessDays(new Date(), PROCESSING_DAYS_MAX + (Number(route.maxDays) || 15));
+            const destToday = destinationToday(rateData?.destination?.country_code || rateData?.destination?.country);
+            const minDate = addBusinessDays(destToday, PROCESSING_DAYS_MIN + (Number(route.minDays) || 5));
+            const maxDate = addBusinessDays(destToday, PROCESSING_DAYS_MAX + (Number(route.maxDays) || 15));
             
             const rateEntry = {
                 service_name: route.service_name, // No suffix
