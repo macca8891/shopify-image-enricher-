@@ -146,10 +146,11 @@ function getLastGood(key) {
     return { result: hit.result, ageMs: Date.now() - hit.storedAt };
 }
 
-// Processing time before a parcel leaves the consolidation warehouse, per the
-// shipping policy ("1 to 5 business days to verify and prepare for dispatch").
-const PROCESSING_DAYS_MIN = 1;
-const PROCESSING_DAYS_MAX = 5;
+// Processing time before a parcel leaves the consolidation warehouse. Zero since
+// 22 Oct 2026: the 1 to 5 business days are stated on the site before checkout,
+// so the checkout window shows carrier transit only (Michael).
+const PROCESSING_DAYS_MIN = 0;
+const PROCESSING_DAYS_MAX = 0;
 
 function addBusinessDays(date, days) {
     const d = new Date(date.getTime());
@@ -3048,8 +3049,7 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             const priceCents = Math.round(priceWithBuffer * 100);
             logger.info(`    Route: ${route.service_name} | Price: ${route.priceFinal.toFixed(2)} ${route.currency} → ${priceWithBuffer.toFixed(2)} ${route.currency} (+13%) = ${priceCents} cents`);
             
-            // Delivery window = processing time (the shipping policy promises 1 to 5
-            // business days to verify and prepare for dispatch) + the route's transit.
+            // Delivery window = processing time (PROCESSING_DAYS_*, currently 0) + the route's transit.
             // Shopify ignores a bare date here; it needs "YYYY-MM-DD HH:MM:SS +0000".
             const minDate = addBusinessDays(new Date(), PROCESSING_DAYS_MIN);
             minDate.setUTCDate(minDate.getUTCDate() + (Number(route.minDays) || 5));
