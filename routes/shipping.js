@@ -235,6 +235,26 @@ function packQtyFromItem(item) {
     return Number.isFinite(n) && n >= 1 && n <= 500 ? n : 1;
 }
 
+/**
+ * Does weight_raw_kg_ already hold the whole pack? Two conventions are live
+ * (found 21 Oct 2026 on a checkout quoting 6.6 kg for a 1.1 kg cart):
+ *   - "(2 Pack)" filters (min_order_packs): metafield per piece, variant
+ *     weight = n x piece. Multiply.
+ *   - Laser builders (build_v2): metafield = the largest pack, and every
+ *     variant carries that same weight. A "10 Pack" multiplied again is
+ *     10x too heavy (D32 nozzle 10 pack 0.61 kg quoted as 6.1 kg).
+ * The variant weight Shopify sends tells them apart: if it matches the
+ * metafield rather than metafield x pack, the metafield is the pack.
+ * No variant weight, or neither match: keep multiplying (old behaviour).
+ */
+function metafieldIsWholePack(metafieldKg, packQty, variantGramsPerUnit) {
+    if (!(packQty > 1) || !(variantGramsPerUnit > 0) || !(metafieldKg > 0)) return false;
+    const variantKg = variantGramsPerUnit / 1000;
+    const near = (a, b) => Math.abs(a - b) <= 0.25 * Math.max(a, b);
+    if (near(variantKg, metafieldKg * packQty)) return false;
+    return near(variantKg, metafieldKg);
+}
+
 function addProcessingLog(message, data = null) {
     const logEntry = {
         timestamp: new Date().toISOString(),
@@ -1396,8 +1416,9 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             const packQty = packQtyFromItem(item);
             const metafieldWeightKg = weightKgFromMetafields(metafields);
             if (metafieldWeightKg !== null) {
-                weightKg = metafieldWeightKg * packQty * quantity;
-                weightSource = packQty > 1 ? `metafield x${packQty} pack` : 'metafield';
+                const perPack = metafieldIsWholePack(metafieldWeightKg, packQty, weightGrams);
+                weightKg = metafieldWeightKg * (perPack ? 1 : packQty) * quantity;
+                weightSource = packQty > 1 ? (perPack ? 'metafield (already the pack)' : `metafield x${packQty} pack`) : 'metafield';
             }
 
             addProcessingLog(`📦 Product ${index + 1} data`, {
