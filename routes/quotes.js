@@ -93,6 +93,16 @@ router.get('/config', (req, res) => {
     });
 });
 
+/**
+ * Public, no customer data. The quote page shows its photo field only when this
+ * says photos are accepted, so the form never collects photos a stale deploy
+ * would silently drop.
+ */
+router.get('/features', (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.json({ photos: true, maxPhotos: MAX_PHOTOS });
+});
+
 router.post('/', async (req, res) => {
     try {
         const b = req.body || {};
