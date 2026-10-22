@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const QuoteRequest = require('../models/QuoteRequest');
+const QuotePhoto = require('../models/QuotePhoto');
 const logger = require('../utils/logger');
 
 /**
@@ -9,6 +10,7 @@ const logger = require('../utils/logger');
  * POST /api/quotes   public, called by the form on sparepartmart.co
  * GET  /api/quotes   private, polled by the Order Desk. Requires QUOTES_TOKEN.
  * POST /api/quotes/:id/status  private, Order Desk marks progress.
+ * GET  /api/quotes/:id/photos/:idx  private, Order Desk fetches an attached photo.
  *
  * The GET carries customer names, emails and phone numbers, so it stays shut
  * unless QUOTES_TOKEN is set in the environment. No token, no listing.
@@ -27,6 +29,37 @@ function throttled(ip) {
     RECENT.set(ip, hits);
     if (RECENT.size > 5000) RECENT.clear();
     return hits.length > MAX_PER_WINDOW;
+}
+
+// ---- photos of the part or its label (board, 22 Oct 2026) -----------------
+// The form resizes each photo in the browser and sends it as a base64 data URL
+// inside the JSON body (express.json allows 10mb). Up to 3 are kept. The type is
+// read from the file's magic bytes; whatever the browser claims, and any
+// filename, is ignored. Anything that is not a JPEG, PNG or WebP is dropped.
+const MAX_PHOTOS = 3;
+const MAX_PHOTO_BYTES = 3 * 1024 * 1024;   // per photo, after the browser's resize
+
+function sniffImage(buf) {
+    if (buf.length > 3 && buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return 'image/jpeg';
+    if (buf.length > 8 && buf.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]))) return 'image/png';
+    if (buf.length > 12 && buf.slice(0, 4).toString('latin1') === 'RIFF'
+        && buf.slice(8, 12).toString('latin1') === 'WEBP') return 'image/webp';
+    return null;
+}
+
+function decodePhotos(raw) {
+    const out = [];
+    let dropped = 0;
+    (Array.isArray(raw) ? raw : []).slice(0, MAX_PHOTOS).forEach(p => {
+        const s = typeof p === 'string' ? p : (p && typeof p.data === 'string' ? p.data : '');
+        const m = /^data:[^;,]{0,60};base64,([A-Za-z0-9+/=\s]+)$/.exec(s);
+        if (!m) { dropped++; return; }
+        const buf = Buffer.from(m[1], 'base64');
+        const type = sniffImage(buf);
+        if (!type || buf.length > MAX_PHOTO_BYTES) { dropped++; return; }
+        out.push({ contentType: type, data: buf });
+    });
+    return { photos: out, dropped };
 }
 
 function authed(req) {
@@ -130,7 +163,25 @@ router.post('/', async (req, res) => {
             ip
         });
 
-        logger.info(`Quote request ${doc._id} from ${email}`);
+        // Photos are best effort: a bad image never costs us the request itself.
+        const { photos, dropped } = decodePhotos(b.photos);
+        if (photos.length) {
+            try {
+                const meta = [];
+                for (let i = 0; i < photos.length; i++) {
+                    await QuotePhoto.create({ quote: doc._id, idx: i,
+                        contentType: photos[i].contentType, bytes: photos[i].data.length,
+                        data: photos[i].data });
+                    meta.push({ idx: i, contentType: photos[i].contentType, bytes: photos[i].data.length });
+                }
+                await QuoteRequest.updateOne({ _id: doc._id }, { $set: { photos: meta } });
+            } catch (perr) {
+                logger.error(`Quote ${doc._id}: photos not saved:`, perr);
+            }
+        }
+        if (dropped) logger.info(`Quote ${doc._id}: ${dropped} photo(s) dropped (not a JPEG/PNG/WebP, or too large)`);
+
+        logger.info(`Quote request ${doc._id} from ${email}${photos.length ? ` with ${photos.length} photo(s)` : ''}`);
         return res.json({ ok: true, id: doc._id });
     } catch (err) {
         logger.error('Quote request failed:', err);
@@ -155,6 +206,26 @@ router.get('/', async (req, res) => {
     } catch (err) {
         logger.error('Quote listing failed:', err);
         return res.status(500).json({ error: err.message, quotes: [] });
+    }
+});
+
+router.get('/:id/photos/:idx', async (req, res) => {
+    if (!authed(req)) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        if (!/^[a-f0-9]{24}$/i.test(req.params.id)) return res.status(400).json({ error: 'bad id' });
+        const idx = parseInt(req.params.idx, 10);
+        if (!(idx >= 0 && idx < MAX_PHOTOS)) return res.status(400).json({ error: 'bad index' });
+        const p = await QuotePhoto.findOne({ quote: req.params.id, idx }).lean();
+        if (!p) return res.status(404).json({ error: 'not found' });
+        // lean() hands back a BSON Binary; its .buffer is the exact bytes.
+        const d = p.data;
+        const buf = Buffer.isBuffer(d) ? d : Buffer.from(d.buffer || d);
+        res.set('Content-Type', sniffImage(buf) || 'application/octet-stream');
+        res.set('X-Content-Type-Options', 'nosniff');
+        res.set('Cache-Control', 'private, no-store');
+        return res.send(buf);
+    } catch (err) {
+        return res.status(500).json({ error: err.message });
     }
 });
 

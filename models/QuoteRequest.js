@@ -34,6 +34,16 @@ const QuoteRequestSchema = new mongoose.Schema({
     // true only when the buyer ticked it; the desk records it as email marketing consent.
     marketingOptIn: { type: Boolean, default: false },
 
+    // Optional 'Photo of the part or its label' uploads (board, 22 Oct 2026),
+    // up to 3. Only the metadata lives here; the images are in QuotePhoto and
+    // the desk fetches them from GET /api/quotes/:id/photos/:idx.
+    photos: [{
+        _id: false,
+        idx: { type: Number },
+        contentType: { type: String, maxlength: 40 },
+        bytes: { type: Number }
+    }],
+
     // The shipping service they picked on the cart. The proforma uses this
     // rather than re-quoting, so the invoice matches what they were shown.
     shippingChoice: {
