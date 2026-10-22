@@ -152,14 +152,20 @@ function getLastGood(key) {
 const PROCESSING_DAYS_MIN = 0;
 const PROCESSING_DAYS_MAX = 0;
 
-function addBusinessDays(date, days) {
+// BuckyDrop's transit figures are CALENDAR days, not business days (Michael, 23 Oct 2026,
+// from BuckyDrop's own shipping calculator, which labels every route plainly as "days":
+// EMS "5~11 days", YunExpress Air Cargo "7~14 days"). Their API sends bare integers in
+// minTimeInTransit/maxTimeInTransit with no unit anywhere, which is what led to the wrong
+// guess on 22 Oct. Counting them as business days inflated every window by about 40% and
+// pushed ocean freight out to 89 days.
+//
+// Shopify derives the "X to Y business days" wording on the checkout itself, by counting
+// business days between now and the dates we send. So sending honest calendar-day dates
+// makes BOTH the wording and the promise correct: ocean lands ~63 days out and Shopify
+// words it as roughly 45 business days.
+function addCalendarDays(date, days) {
     const d = new Date(date.getTime());
-    let left = days;
-    while (left > 0) {
-        d.setUTCDate(d.getUTCDate() + 1);
-        const wd = d.getUTCDay();
-        if (wd !== 0 && wd !== 6) left--;
-    }
+    d.setUTCDate(d.getUTCDate() + days);
     return d;
 }
 
@@ -3066,11 +3072,10 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             
             // Delivery window = processing time (PROCESSING_DAYS_*, currently 0) + the route's transit.
             // Shopify ignores a bare date here; it needs "YYYY-MM-DD HH:MM:SS +0000".
-            // Transit is counted in business days (Michael, 22 Oct 2026): Shopify words the
-            // window as "X to Y business days", so this makes X and Y the route's own numbers.
+            // Transit is BuckyDrop's own calendar-day figure (see addCalendarDays above).
             const destToday = destinationToday(rateData?.destination?.country_code || rateData?.destination?.country);
-            const minDate = addBusinessDays(destToday, PROCESSING_DAYS_MIN + (Number(route.minDays) || 5));
-            const maxDate = addBusinessDays(destToday, PROCESSING_DAYS_MAX + (Number(route.maxDays) || 15));
+            const minDate = addCalendarDays(destToday, PROCESSING_DAYS_MIN + (Number(route.minDays) || 5));
+            const maxDate = addCalendarDays(destToday, PROCESSING_DAYS_MAX + (Number(route.maxDays) || 15));
             
             const rateEntry = {
                 service_name: route.service_name, // No suffix
