@@ -592,7 +592,12 @@ class ShippingService {
                     width: adjD,
                     height: adjH,
                     weight: adjW,
-                    count: quantity, // Use actual quantity for multiple items
+                    // count stays 1: adjW is already the TOTAL weight for this
+                    // shipment (the cart's combined weight, or a line's weight
+                    // times its quantity). BuckyDrop multiplies weight by count,
+                    // so passing the quantity here charged a 4 item, 1.19 kg cart
+                    // as 6.165 kg and dropped it out of the cheaper weight bands.
+                    count: 1,
                     categoryCode: "other"
                 }],
                 orderBy: "price",
@@ -612,7 +617,12 @@ class ShippingService {
                     width: adjD,
                     height: adjH,
                     weight: adjW,
-                    count: quantity, // Use actual quantity for multiple items
+                    // count stays 1: adjW is already the TOTAL weight for this
+                    // shipment (the cart's combined weight, or a line's weight
+                    // times its quantity). BuckyDrop multiplies weight by count,
+                    // so passing the quantity here charged a 4 item, 1.19 kg cart
+                    // as 6.165 kg and dropped it out of the cheaper weight bands.
+                    count: 1,
                     categoryCode: "other"
                 }],
                 orderBy: "price",
