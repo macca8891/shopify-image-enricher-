@@ -54,6 +54,19 @@ const QuoteRequestSchema = new mongoose.Schema({
         maxDays: { type: Number }
     },
 
+    // Savings the cart was showing when they asked for the invoice: a discount
+    // code they applied, or an automatic one. The proforma honours these, so it
+    // never asks for more than the cart promised. `value` with type
+    // "percentage" is re-applied to the invoice's own subtotal; a fixed amount
+    // is carried across as the cart recorded it.
+    discounts: [{
+        _id: false,
+        title: { type: String, trim: true, maxlength: 140 },
+        type: { type: String, trim: true, maxlength: 20 },
+        value: { type: Number },
+        amount: { type: Number }
+    }],
+
     // One entry per line of the form, so a request covering three machines keeps
     // each part tied to its own machine and quantity. `parts` is the same
     // content rendered as text, kept so anything reading it still works.

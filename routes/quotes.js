@@ -146,6 +146,18 @@ router.post('/', async (req, res) => {
             }))
             .filter(l => l.code || l.brand || l.machine);
 
+        // Savings the cart was showing. Capped and coerced like every other
+        // field: the proforma spends real money off the back of these.
+        const discounts = (Array.isArray(b.discounts) ? b.discounts : [])
+            .slice(0, 10)
+            .map(d => ({
+                title: String(d && d.title || '').trim().slice(0, 140),
+                type: String(d && d.type || '').trim().slice(0, 20),
+                value: Number(d && d.value) || 0,
+                amount: Number(d && d.amount) || 0
+            }))
+            .filter(d => d.amount > 0 || d.value > 0);
+
         const doc = await QuoteRequest.create({
             shop: b.shop || 'spare-part-mart.myshopify.com',
             requestType: b.requestType === 'proforma' ? 'proforma' : 'quote',
@@ -166,6 +178,7 @@ router.post('/', async (req, res) => {
                 minDays: Number(b.shippingChoice.minDays) || null,
                 maxDays: Number(b.shippingChoice.maxDays) || null
             } : undefined,
+            discounts,
             machine: (b.machine || '').trim(),
             quantity: (b.quantity || '').trim(),
             notes: (b.notes || '').trim(),
