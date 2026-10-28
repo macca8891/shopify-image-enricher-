@@ -2377,11 +2377,18 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                     }
                     
                     // Hide rates with "batteries/battries" unless product IS a battery
-                    if ((routeNameLower.includes('batteries') || routeNameLower.includes('battries')) && !productInfo.isBattery) {
+                    // 28 Oct 2026: "Battery" singular slipped through ("Europe DHL Duty-Prepaid Line (Pure Battery )" in Finland)
+                    if (/batter(y|ies)|battries/.test(routeNameLower) && !productInfo.isBattery) {
                         logger.info(`    ⏭️ Skipped route (contains 'batteries/battries' but product is not a battery): ${routeName}`);
                         continue;
                     }
                     
+                    // Hide special-goods lines (cosmetics, liquids, magnets): our parts ship as general cargo.
+                    // Michael, 28 Oct 2026: Finland checkout showed "Europe DHL Duty-Prepaid Line (Special )".
+                    if (/\(\s*special\s*\)|special\s+cargo|cosmetic/.test(routeNameLower)) {
+                        continue;
+                    }
+
                     // Rename NL Post routes to cleaner names (do this FIRST, before other replacements)
                     // Match with flexible spacing to handle any variations
                     const originalName = routeName;
@@ -2466,6 +2473,13 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                     routeName = routeName.replace(/\s*\(Regular\s+Ship\)\s*$/gi, '');
                     // Remove "Regular Ship" suffix
                     routeName = routeName.replace(/\s+Regular\s+Ship\s*$/gi, '');
+                    // Europe's duty-prepaid DHL lines: say what the customer gets (no import duty to pay on arrival)
+                    routeName = routeName.replace(/^Europe\s+DHL\s+Duty-Prepaid\s+Express\s+Line$/i, 'DHL Express, duties paid');
+                    routeName = routeName.replace(/^Europe\s+DHL\s+Duty-Prepaid\s+Line$/i, 'DHL, duties paid');
+                    routeName = routeName.replace(/^DHL\s+Preferential\s+Line\s+\(Heavy\s+Cargo\)$/i, 'DHL Heavy Cargo');
+                    routeName = routeName.replace(/^EU\s*&\s*US\s+Air\s+Freight\s+Dedicated\s+Line$/i, 'Air Freight Dedicated Line');
+                    // Stray spaces inside brackets from BuckyDrop ("(Special )" -> "(Special)")
+                    routeName = routeName.replace(/\(\s+/g, '(').replace(/\s+\)/g, ')');
                     // Fix redundant "Express" (e.g., "Express Fast Express Line" → "Express Fast Line")
                     routeName = routeName.replace(/Express\s+Fast\s+Express/gi, 'Express Fast');
                     routeName = routeName.replace(/Express\s+Express/gi, 'Express');
