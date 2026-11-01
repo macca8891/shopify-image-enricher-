@@ -277,6 +277,43 @@ function metafieldIsWholePack(metafieldKg, packQty, variantGramsPerUnit) {
     return near(variantKg, metafieldKg);
 }
 
+/**
+ * The parcel box for the whole cart, in mm, as {length, width, height} with
+ * length = width (ShippingService takes one diameter for both).
+ *
+ * This used to be the single largest item's size whatever the cart held. UPS
+ * then billed #161011 (3 filters, 4 pieces) on the real 34.6 x 23.6 x 17.4 cm
+ * carton, about 2.8 kg by volume, against a quote sized for the biggest
+ * filter alone: about $11 under (Michael, 1 Nov 2026). Now, for 2 or more
+ * pieces, each piece is a D x D x H block, the blocks are added up, and
+ * PACKING_FACTOR allows for each part's own box and the gaps in the carton
+ * (#161011: 7.8 L of parts went into a 14.2 L carton). The total is shaped
+ * near a cube, never smaller than the largest piece. One piece: unchanged.
+ *
+ * lines: [{ d, h, pieces }] with d and h in mm (0 / missing = 100 mm, the
+ * old default).
+ */
+const PACKING_FACTOR = 1.5;
+function cartBoxMm(lines) {
+    let maxD = 0, maxH = 0, vol = 0, pieces = 0;
+    for (const l of lines) {
+        const n = Math.max(0, Math.round(l.pieces || 0));
+        if (!n) continue;
+        const d = l.d > 0 ? l.d : 100, h = l.h > 0 ? l.h : 100;
+        maxD = Math.max(maxD, d); maxH = Math.max(maxH, h);
+        // small parts (under 0.25 L: windows, seals, nozzles) pack tight in bags, no box allowance
+        const block = d * d * h;
+        vol += block * n * (block >= 250000 ? PACKING_FACTOR : 1); pieces += n;
+    }
+    if (pieces <= 1) {
+        return { length: maxD || 100, width: maxD || 100, height: maxH || 100 };
+    }
+    // tall parts lie side by side at their own height rather than forcing a cube
+    const height = Math.max(maxH, Math.cbrt(vol));
+    const side = Math.max(maxD, Math.sqrt(vol / height));
+    return { length: Math.round(side), width: Math.round(side), height: Math.round(height) };
+}
+
 function addProcessingLog(message, data = null) {
     const logEntry = {
         timestamp: new Date().toISOString(),
@@ -1545,15 +1582,22 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             }
         }
 
-        // For BuckyDrop API: Send single-item dimensions and let BuckyDrop multiply via count parameter
-        // BuckyDrop will handle the multiplication internally when count > 1
-        // So we send the max single-item dimensions, not stacked dimensions
-        const singleItemHeight = maxHeight;
-        
-        // Default dimensions if not found (single item dimensions)
-        combinedDimensions.height = singleItemHeight || 100;
-        combinedDimensions.length = maxDiameter || 100;
-        combinedDimensions.width = maxDiameter || 100;
+        // One box for the whole cart: count is always 1 on the BuckyDrop call,
+        // so the box must hold every piece (cartBoxMm).
+        const dimOf = (metas, keys) => {
+            const m = (metas || []).find(x => keys.includes(x.key));
+            return m ? (parseFloat(m.value) || 0) : 0;
+        };
+        const boxLines = processedItems.map((item, i) => ({
+            d: dimOf(productDataResults[i] && productDataResults[i].metafields, ['largest_diameter_raw', 'largest_diameter_raw_mm_']),
+            h: dimOf(productDataResults[i] && productDataResults[i].metafields, ['height_raw', 'height_raw_mm_']),
+            pieces: (item.quantity || 1) * packQtyFromItem(item)
+        }));
+        const box = cartBoxMm(boxLines);
+        combinedDimensions.height = box.height;
+        combinedDimensions.length = box.length;
+        combinedDimensions.width = box.width;
+        addProcessingLog(`📦 Cart box`, { lines: boxLines, box });
 
         // Default weight if zero
         if (combinedWeight <= 0) {
