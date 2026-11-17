@@ -3192,10 +3192,14 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         // Free economy shipping: subtotal from Shopify's item prices (cents, request currency) in USD.
         let freeRoute = null;
         try {
-            const subCents = itemArray.reduce((t, it) => t + (Number(it.price) || 0) * (Number(it.quantity) || 1), 0);
+            // itemArray is rebuilt without prices by now, so read Shopify's own item list.
+            const raw = rateData.items || [];
+            const priced = Array.isArray(raw) ? raw : [].concat(raw.item || raw);
+            const subCents = priced.reduce((t, it) => t + (Number(it.price) || 0) * (Number(it.quantity) || 1), 0);
             const toUsd = await rateToUsd(rateData.currency);
             const subtotalUsd = toUsd ? subCents / 100 * toUsd : 0;
             const economy = checkoutRoutes.find(r => !['DHL', 'UPS', 'FedEx'].includes(r.checkout_name));
+            addProcessingLog(`🎁 Free shipping: subtotal US$${subtotalUsd.toFixed(2)} (${rateData.currency})`);
             if (economy && subtotalUsd >= FREE_SHIP_MIN_USD) {
                 const shipUsd = economy.priceFinal * 1.13 * (await cnyToUsd());
                 if (shipUsd <= FREE_SHIP_MAX_USD) freeRoute = economy;
