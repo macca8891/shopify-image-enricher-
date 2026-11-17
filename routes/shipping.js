@@ -218,6 +218,26 @@ function checkoutNote(displayName, countryCode) {
     return String(countryCode || '').toUpperCase() === 'US' ? NOTE_ECONOMY_US : NOTE_ECONOMY;
 }
 
+// Free economy shipping (Michael, 17 Nov 2026): carts of US$200+ get their cheapest non-courier option free,
+// but only when that option would have cost the customer US$25 or less. Dearer than that, rates show as normal.
+const FREE_SHIP_MIN_USD = 200;
+const FREE_SHIP_MAX_USD = 25;
+let fxToUsd = {};
+async function rateToUsd(cur) {
+    cur = String(cur || 'USD').toUpperCase();
+    if (cur === 'USD') return 1;
+    const hit = fxToUsd[cur];
+    if (hit && Date.now() - hit.ts < 12 * 3600 * 1000) return hit.rate;
+    try {
+        const r = await axios.get(`https://api.frankfurter.app/latest?from=${cur}&to=USD`, { timeout: 5000 });
+        const rate = r.data && r.data.rates && r.data.rates.USD;
+        if (rate) fxToUsd[cur] = { rate, ts: Date.now() };
+    } catch (e) {
+        logger.warn(`FX ${cur}->USD failed: ${e.message}`);
+    }
+    return fxToUsd[cur] ? fxToUsd[cur].rate : null;   // unknown rate: no free shipping rather than a wrong one
+}
+
 function getCachedMetafields(productId) {
     const hit = metafieldCache.get(productId);
     if (!hit) return null;
@@ -3169,6 +3189,22 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             .map(([shown, route]) => ({ ...route, checkout_name: shown }))
             .sort((a, b) => a.priceFinal - b.priceFinal);
 
+        // Free economy shipping: subtotal from Shopify's item prices (cents, request currency) in USD.
+        let freeRoute = null;
+        try {
+            const subCents = itemArray.reduce((t, it) => t + (Number(it.price) || 0) * (Number(it.quantity) || 1), 0);
+            const toUsd = await rateToUsd(rateData.currency);
+            const subtotalUsd = toUsd ? subCents / 100 * toUsd : 0;
+            const economy = checkoutRoutes.find(r => !['DHL', 'UPS', 'FedEx'].includes(r.checkout_name));
+            if (economy && subtotalUsd >= FREE_SHIP_MIN_USD) {
+                const shipUsd = economy.priceFinal * 1.13 * (await cnyToUsd());
+                if (shipUsd <= FREE_SHIP_MAX_USD) freeRoute = economy;
+                addProcessingLog(`🎁 Free shipping check: subtotal US$${subtotalUsd.toFixed(2)}, ${economy.checkout_name} US$${shipUsd.toFixed(2)} -> ${freeRoute ? 'FREE' : 'over the cap'}`);
+            }
+        } catch (e) {
+            logger.warn(`Free shipping check failed: ${e.message}`);
+        }
+
         for (const route of checkoutRoutes) {
             // Add 13% buffer to shipping prices
             const priceWithBuffer = route.priceFinal * 1.13;
@@ -3183,11 +3219,13 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             const minDate = addCalendarDays(destToday, PROCESSING_DAYS_MIN + (Number(route.minDays) || 5));
             const maxDate = addCalendarDays(destToday, PROCESSING_DAYS_MAX + (Number(route.maxDays) || 15));
             
+            const isFree = route === freeRoute;
             const rateEntry = {
-                service_name: route.checkout_name,
-                description: checkoutNote(route.checkout_name, destCountry),
+                service_name: isFree ? `Free shipping (${route.checkout_name.toLowerCase()})` : route.checkout_name,
+                description: isFree ? `Free on orders over US$${FREE_SHIP_MIN_USD}. ${checkoutNote(route.checkout_name, destCountry)}`
+                                    : checkoutNote(route.checkout_name, destCountry),
                 service_code: route.service_code,
-                total_price: priceCents.toString(), // Ensure total_price is a string in cents
+                total_price: isFree ? '0' : priceCents.toString(), // Ensure total_price is a string in cents
                 currency: route.currency,
                 min_delivery_date: shopifyDeliveryDate(minDate),
                 max_delivery_date: shopifyDeliveryDate(maxDate),
