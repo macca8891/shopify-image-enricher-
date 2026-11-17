@@ -3222,7 +3222,7 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             const isFree = offCny > 0 && discCents === 0;
             const note = checkoutNote(route.checkout_name, destCountry);
             const rateEntry = {
-                service_name: isFree ? `Free shipping (${route.checkout_name.toLowerCase()})` : route.checkout_name,
+                service_name: isFree ? `Free shipping (${/^[A-Z][a-z]/.test(route.checkout_name) ? route.checkout_name[0].toLowerCase() + route.checkout_name.slice(1) : route.checkout_name})` : route.checkout_name,
                 description: offCny ? `US$${FREE_SHIP_MAX_USD} off shipping on orders over US$${FREE_SHIP_MIN_USD}. ${note}` : note,
                 service_code: route.service_code,
                 total_price: discCents.toString(), // Ensure total_price is a string in cents
