@@ -218,10 +218,10 @@ function checkoutNote(displayName, countryCode) {
     return String(countryCode || '').toUpperCase() === 'US' ? NOTE_ECONOMY_US : NOTE_ECONOMY;
 }
 
-// Free economy shipping (Michael, 17 Nov 2026): carts of US$200+ get their cheapest non-courier option free,
-// but only when that option would have cost the customer US$25 or less. Dearer than that, rates show as normal.
+// Shipping discount (Michael, 17 Nov 2026): carts of US$200+ get US$25 off every shipping option, couriers
+// included. An option costing US$25 or less becomes free. Replaced "cheapest economy free if under $25" the same day.
 const FREE_SHIP_MIN_USD = 200;
-const FREE_SHIP_MAX_USD = 25;
+const FREE_SHIP_MAX_USD = 25;   // the discount, in USD
 let fxToUsd = {};
 async function rateToUsd(cur) {
     cur = String(cur || 'USD').toUpperCase();
@@ -3189,8 +3189,8 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             .map(([shown, route]) => ({ ...route, checkout_name: shown }))
             .sort((a, b) => a.priceFinal - b.priceFinal);
 
-        // Free economy shipping: subtotal from Shopify's item prices (cents, request currency) in USD.
-        let freeRoute = null;
+        // US$25 off shipping: subtotal from Shopify's item prices (cents, request currency) in USD.
+        let offCny = 0;   // discount per option, in the CNY the rates are quoted in
         try {
             // itemArray is rebuilt without prices by now, so read Shopify's own item list.
             const raw = rateData.items || [];
@@ -3198,15 +3198,10 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             const subCents = priced.reduce((t, it) => t + (Number(it.price) || 0) * (Number(it.quantity) || 1), 0);
             const toUsd = await rateToUsd(rateData.currency);
             const subtotalUsd = toUsd ? subCents / 100 * toUsd : 0;
-            const economy = checkoutRoutes.find(r => !['DHL', 'UPS', 'FedEx'].includes(r.checkout_name));
-            addProcessingLog(`🎁 Free shipping: subtotal US$${subtotalUsd.toFixed(2)} (${rateData.currency})`);
-            if (economy && subtotalUsd >= FREE_SHIP_MIN_USD) {
-                const shipUsd = economy.priceFinal * 1.13 * (await cnyToUsd());
-                if (shipUsd <= FREE_SHIP_MAX_USD) freeRoute = economy;
-                addProcessingLog(`🎁 Free shipping check: subtotal US$${subtotalUsd.toFixed(2)}, ${economy.checkout_name} US$${shipUsd.toFixed(2)} -> ${freeRoute ? 'FREE' : 'over the cap'}`);
-            }
+            if (subtotalUsd >= FREE_SHIP_MIN_USD) offCny = FREE_SHIP_MAX_USD / (await cnyToUsd());
+            addProcessingLog(`🎁 Shipping discount: subtotal US$${subtotalUsd.toFixed(2)} (${rateData.currency}) -> ${offCny ? 'US$25 off' : 'none'}`);
         } catch (e) {
-            logger.warn(`Free shipping check failed: ${e.message}`);
+            logger.warn(`Shipping discount check failed: ${e.message}`);
         }
 
         for (const route of checkoutRoutes) {
@@ -3223,13 +3218,14 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             const minDate = addCalendarDays(destToday, PROCESSING_DAYS_MIN + (Number(route.minDays) || 5));
             const maxDate = addCalendarDays(destToday, PROCESSING_DAYS_MAX + (Number(route.maxDays) || 15));
             
-            const isFree = route === freeRoute;
+            const discCents = offCny ? Math.max(0, priceCents - Math.round(offCny * 100)) : priceCents;
+            const isFree = offCny > 0 && discCents === 0;
+            const note = checkoutNote(route.checkout_name, destCountry);
             const rateEntry = {
                 service_name: isFree ? `Free shipping (${route.checkout_name.toLowerCase()})` : route.checkout_name,
-                description: isFree ? `Free on orders over US$${FREE_SHIP_MIN_USD}. ${checkoutNote(route.checkout_name, destCountry)}`
-                                    : checkoutNote(route.checkout_name, destCountry),
+                description: offCny ? `US$${FREE_SHIP_MAX_USD} off shipping on orders over US$${FREE_SHIP_MIN_USD}. ${note}` : note,
                 service_code: route.service_code,
-                total_price: isFree ? '0' : priceCents.toString(), // Ensure total_price is a string in cents
+                total_price: discCents.toString(), // Ensure total_price is a string in cents
                 currency: route.currency,
                 min_delivery_date: shopifyDeliveryDate(minDate),
                 max_delivery_date: shopifyDeliveryDate(maxDate),
