@@ -204,9 +204,9 @@ const CHECKOUT_NAMES = [
     [/Air Cargo|Air Freight/i, 'Standard air'],
     [/Ocean/i, 'Sea freight'],
 ];
-const NOTE_COURIER = 'Fastest, with full door-to-door tracking. Courier parcels are more likely to be charged import tax or duty. If any applies, the courier will contact you before delivery.';
-const NOTE_ECONOMY = 'Great value and tracked. Postal parcels usually clear customs simply, so import charges are less likely, though not guaranteed.';
-const NOTE_ECONOMY_US = 'Great value and tracked. Import charges, if any, are usually lower than with couriers.';
+const NOTE_COURIER = 'Friendly note: more likely to be charged import tax and duties.';
+const NOTE_ECONOMY = 'Friendly note: import charges are less likely, although not guaranteed.';
+const NOTE_ECONOMY_US = 'Friendly note: import charges are usually lower than with couriers.';
 
 function checkoutName(name) {
     const hit = CHECKOUT_NAMES.find(([re]) => re.test(name || ''));
