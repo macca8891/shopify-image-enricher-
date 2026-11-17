@@ -189,6 +189,35 @@ function shopifyDeliveryDate(date) {
     return date.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' +0000');
 }
 
+// Customer-facing names and notes at checkout (Michael, 17 Nov 2026). Matched against the already-cleaned
+// BuckyDrop name; first match wins. Couriers get the "more likely to pay import charges" note, postal and
+// air cargo lines the "less likely" one (softer in the US, which charges duty on almost every import).
+const CHECKOUT_NAMES = [
+    [/DHL/i, 'DHL'],
+    [/UPS/i, 'UPS'],
+    [/FEDEX/i, 'FedEx'],
+    [/^ePacket/i, 'Economy post'],
+    [/Small Parcel|Air Mail/i, 'Standard post'],
+    [/^EMS\b/i, 'EMS postal express'],
+    [/Express Fast/i, 'Express air'],
+    [/Economy Air Cargo|^Express Air Cargo$/i, 'Economy air'],
+    [/Air Cargo|Air Freight/i, 'Standard air'],
+    [/Ocean/i, 'Sea freight'],
+];
+const NOTE_COURIER = 'Fastest, with full door-to-door tracking. Courier parcels are more likely to be charged import tax or duty. If any applies, the courier will contact you before delivery.';
+const NOTE_ECONOMY = 'Great value and tracked. Postal parcels usually clear customs simply, so import charges are less likely, though not guaranteed.';
+const NOTE_ECONOMY_US = 'Great value and tracked. Import charges, if any, are usually lower than with couriers.';
+
+function checkoutName(name) {
+    const hit = CHECKOUT_NAMES.find(([re]) => re.test(name || ''));
+    return hit ? hit[1] : name;
+}
+
+function checkoutNote(displayName, countryCode) {
+    if (['DHL', 'UPS', 'FedEx'].includes(displayName)) return NOTE_COURIER;
+    return String(countryCode || '').toUpperCase() === 'US' ? NOTE_ECONOMY_US : NOTE_ECONOMY;
+}
+
 function getCachedMetafields(productId) {
     const hit = metafieldCache.get(productId);
     if (!hit) return null;
@@ -2643,6 +2672,15 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             }
         }
 
+        // Duty-prepaid lines are never offered (Michael, 17 Nov 2026): every courier option carries the same
+        // "import charges more likely" note, which would be wrong on a line that already covers them.
+        for (let i = allAvailableRoutes.length - 1; i >= 0; i--) {
+            if (/duties paid|duty-prepaid|DDP/i.test(allAvailableRoutes[i].service_name || '')) {
+                manuallyDisabled[allAvailableRoutes[i].service_name] = 'DUTIES PAID';
+                allAvailableRoutes.splice(i, 1);
+            }
+        }
+
         addProcessingLog(`🚫 Excluded ${Object.keys(manuallyDisabled).length} route(s) by name`, {
             excludedTerms: excludedServiceNames,
             autoFiltersEnabled: autoFiltersEnabled,
@@ -3118,8 +3156,20 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         // Add all unique routes as shipping options (CONSOLIDATED - all items together)
         logger.info(`  💰 Converting prices to cents for JSON response:`);
         addProcessingLog(`💰 Converting ${uniqueRoutes.length} routes to Shopify format`);
-        
+
+        // Checkout names collapse some routes into one ("Europe DHL Route-Y" and "DHL" are both "DHL"):
+        // keep the cheapest of each so the customer never sees two identical rows.
+        const byCheckoutName = new Map();
         for (const route of uniqueRoutes) {
+            const shown = checkoutName(route.service_name);
+            const prev = byCheckoutName.get(shown);
+            if (!prev || route.priceFinal < prev.priceFinal) byCheckoutName.set(shown, route);
+        }
+        const checkoutRoutes = [...byCheckoutName.entries()]
+            .map(([shown, route]) => ({ ...route, checkout_name: shown }))
+            .sort((a, b) => a.priceFinal - b.priceFinal);
+
+        for (const route of checkoutRoutes) {
             // Add 13% buffer to shipping prices
             const priceWithBuffer = route.priceFinal * 1.13;
             // Round to nearest cent (exact conversion, no rounding up)
@@ -3134,7 +3184,8 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             const maxDate = addCalendarDays(destToday, PROCESSING_DAYS_MAX + (Number(route.maxDays) || 15));
             
             const rateEntry = {
-                service_name: route.service_name, // No suffix
+                service_name: route.checkout_name,
+                description: checkoutNote(route.checkout_name, destCountry),
                 service_code: route.service_code,
                 total_price: priceCents.toString(), // Ensure total_price is a string in cents
                 currency: route.currency,
