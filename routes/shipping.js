@@ -204,9 +204,9 @@ const CHECKOUT_NAMES = [
     [/Air Cargo|Air Freight/i, 'Standard air'],
     [/Ocean/i, 'Sea freight'],
 ];
-const NOTE_COURIER = 'Friendly note: more likely to be charged import tax and duties.';
-const NOTE_ECONOMY = 'Friendly note: import charges are less likely, although not guaranteed.';
-const NOTE_ECONOMY_US = 'Friendly note: import charges are usually lower than with couriers.';
+const NOTE_COURIER = 'Import tax and duties more likely.';
+const NOTE_ECONOMY = 'Import charges less likely.';
+const NOTE_ECONOMY_US = 'Import charges usually lower than couriers.';
 
 function checkoutName(name) {
     const hit = CHECKOUT_NAMES.find(([re]) => re.test(name || ''));
@@ -3220,12 +3220,11 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             
             const isCheapest = route === checkoutRoutes[0];   // sorted by price above
             const discCents = offCny && isCheapest ? Math.max(0, priceCents - Math.round(offCny * 100)) : priceCents;
-            const isFree = offCny > 0 && isCheapest && discCents === 0;
             const note = checkoutNote(route.checkout_name, destCountry);
             const rateEntry = {
-                service_name: isFree ? `Free shipping (${/^[A-Z][a-z]/.test(route.checkout_name) ? route.checkout_name[0].toLowerCase() + route.checkout_name.slice(1) : route.checkout_name})` : route.checkout_name,
-                description: isFree ? `Free on orders over US$${FREE_SHIP_MIN_USD}. ${note}`
-                    : offCny && isCheapest ? `US$${FREE_SHIP_MAX_USD} off on orders over US$${FREE_SHIP_MIN_USD}. ${note}` : note,
+                // Michael, 17 Nov: "hard to digest". Plain carrier name, the credit as its own short sentence first.
+                service_name: route.checkout_name,
+                description: offCny && isCheapest ? `US$${FREE_SHIP_MAX_USD} shipping credit applied. ${note}` : note,
                 service_code: route.service_code,
                 total_price: discCents.toString(), // Ensure total_price is a string in cents
                 currency: route.currency,
