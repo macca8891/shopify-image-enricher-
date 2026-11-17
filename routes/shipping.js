@@ -218,8 +218,8 @@ function checkoutNote(displayName, countryCode) {
     return String(countryCode || '').toUpperCase() === 'US' ? NOTE_ECONOMY_US : NOTE_ECONOMY;
 }
 
-// Shipping discount (Michael, 17 Nov 2026): carts of US$200+ get the cheapest (first) shipping option free, up to
-// US$25; dearer than that it is US$25 off. Every other option stays full price. (Same day it was briefly $25 off all.)
+// Shipping credit (Michael, 17 Nov 2026): carts of US$200+ get US$25 off the two cheapest shipping options (free when
+// one costs US$25 or less). The rest stay full price. Same day it was briefly all options, then the cheapest only.
 const FREE_SHIP_MIN_USD = 200;
 const FREE_SHIP_MAX_USD = 25;   // the discount, in USD
 let fxToUsd = {};
@@ -3218,7 +3218,7 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             const minDate = addCalendarDays(destToday, PROCESSING_DAYS_MIN + (Number(route.minDays) || 5));
             const maxDate = addCalendarDays(destToday, PROCESSING_DAYS_MAX + (Number(route.maxDays) || 15));
             
-            const isCheapest = route === checkoutRoutes[0];   // sorted by price above
+            const isCheapest = checkoutRoutes.indexOf(route) < 2;   // the two cheapest (sorted by price above)
             const discCents = offCny && isCheapest ? Math.max(0, priceCents - Math.round(offCny * 100)) : priceCents;
             const note = checkoutNote(route.checkout_name, destCountry);
             const rateEntry = {
