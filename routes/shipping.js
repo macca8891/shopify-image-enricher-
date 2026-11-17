@@ -218,8 +218,8 @@ function checkoutNote(displayName, countryCode) {
     return String(countryCode || '').toUpperCase() === 'US' ? NOTE_ECONOMY_US : NOTE_ECONOMY;
 }
 
-// Shipping discount (Michael, 17 Nov 2026): carts of US$200+ get US$25 off every shipping option, couriers
-// included. An option costing US$25 or less becomes free. Replaced "cheapest economy free if under $25" the same day.
+// Shipping discount (Michael, 17 Nov 2026): carts of US$200+ get the cheapest (first) shipping option free, up to
+// US$25; dearer than that it is US$25 off. Every other option stays full price. (Same day it was briefly $25 off all.)
 const FREE_SHIP_MIN_USD = 200;
 const FREE_SHIP_MAX_USD = 25;   // the discount, in USD
 let fxToUsd = {};
@@ -3218,12 +3218,14 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             const minDate = addCalendarDays(destToday, PROCESSING_DAYS_MIN + (Number(route.minDays) || 5));
             const maxDate = addCalendarDays(destToday, PROCESSING_DAYS_MAX + (Number(route.maxDays) || 15));
             
-            const discCents = offCny ? Math.max(0, priceCents - Math.round(offCny * 100)) : priceCents;
-            const isFree = offCny > 0 && discCents === 0;
+            const isCheapest = route === checkoutRoutes[0];   // sorted by price above
+            const discCents = offCny && isCheapest ? Math.max(0, priceCents - Math.round(offCny * 100)) : priceCents;
+            const isFree = offCny > 0 && isCheapest && discCents === 0;
             const note = checkoutNote(route.checkout_name, destCountry);
             const rateEntry = {
                 service_name: isFree ? `Free shipping (${/^[A-Z][a-z]/.test(route.checkout_name) ? route.checkout_name[0].toLowerCase() + route.checkout_name.slice(1) : route.checkout_name})` : route.checkout_name,
-                description: offCny ? `US$${FREE_SHIP_MAX_USD} off shipping on orders over US$${FREE_SHIP_MIN_USD}. ${note}` : note,
+                description: isFree ? `Free on orders over US$${FREE_SHIP_MIN_USD}. ${note}`
+                    : offCny && isCheapest ? `US$${FREE_SHIP_MAX_USD} off on orders over US$${FREE_SHIP_MIN_USD}. ${note}` : note,
                 service_code: route.service_code,
                 total_price: discCents.toString(), // Ensure total_price is a string in cents
                 currency: route.currency,
