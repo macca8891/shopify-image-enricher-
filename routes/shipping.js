@@ -189,9 +189,8 @@ function shopifyDeliveryDate(date) {
     return date.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' +0000');
 }
 
-// Customer-facing names and notes at checkout (Michael, 17 Nov 2026). Matched against the already-cleaned
-// BuckyDrop name; first match wins. Couriers get the "more likely to pay import charges" note, postal and
-// air cargo lines the "less likely" one (softer in the US, which charges duty on almost every import).
+// Customer-facing names at checkout (Michael, 17 Nov 2026). Matched against the already-cleaned BuckyDrop name;
+// first match wins. The import tax / duty notes were removed on 18 Nov (Michael: they may be scaring buyers off).
 const CHECKOUT_NAMES = [
     [/DHL/i, 'DHL'],
     [/UPS/i, 'UPS'],
@@ -204,18 +203,9 @@ const CHECKOUT_NAMES = [
     [/Air Cargo|Air Freight/i, 'Standard air'],
     [/Ocean/i, 'Sea freight'],
 ];
-const NOTE_COURIER = 'Import tax and duties more likely.';
-const NOTE_ECONOMY = 'Import charges less likely.';
-const NOTE_ECONOMY_US = 'Import charges usually lower than couriers.';
-
 function checkoutName(name) {
     const hit = CHECKOUT_NAMES.find(([re]) => re.test(name || ''));
     return hit ? hit[1] : name;
-}
-
-function checkoutNote(displayName, countryCode) {
-    if (['DHL', 'UPS', 'FedEx'].includes(displayName)) return NOTE_COURIER;
-    return String(countryCode || '').toUpperCase() === 'US' ? NOTE_ECONOMY_US : NOTE_ECONOMY;
 }
 
 // Shipping credit (Michael, 17 Nov 2026): carts of US$200+ get US$25 off the two cheapest shipping options (free when
@@ -3220,11 +3210,10 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             
             const isCheapest = checkoutRoutes.indexOf(route) < 2;   // the two cheapest (sorted by price above)
             const discCents = offCny && isCheapest ? Math.max(0, priceCents - Math.round(offCny * 100)) : priceCents;
-            const note = checkoutNote(route.checkout_name, destCountry);
             const rateEntry = {
                 // Michael, 17 Nov: "hard to digest". Plain carrier name, the credit as its own short sentence first.
                 service_name: route.checkout_name,
-                description: offCny && isCheapest ? `US$${FREE_SHIP_MAX_USD} shipping credit applied. ${note}` : note,
+                ...(offCny && isCheapest ? { description: `US$${FREE_SHIP_MAX_USD} shipping credit applied.` } : {}),
                 service_code: route.service_code,
                 total_price: discCents.toString(), // Ensure total_price is a string in cents
                 currency: route.currency,
