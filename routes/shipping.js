@@ -1472,7 +1472,17 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             address: destination.address1 || '',
         };
         const territory = usTerritory(destination);
-        if (territory) {
+        if (territory === 'PR') {
+            // Michael, 23 Nov 2026: Puerto Rico gets BuckyDrop's own "USA-Puerto Rico" destination rates, the same list
+            // BuckyDrop shows when the parcel is booked (orders sync there as USA-Puerto Rico). Today that is UPS only.
+            targetCountry.name = 'Puerto Rico';
+            targetCountry.code = 'PR';
+            targetCountry.buckyDropName = 'USA-Puerto Rico';
+            targetCountry.province = '';
+            targetCountry.provinceCode = '';
+            logger.info(`  🏝️ Puerto Rico: rating as BuckyDrop USA-Puerto Rico`);
+            addProcessingLog(`🏝️ Puerto Rico: BuckyDrop USA-Puerto Rico rates`);
+        } else if (territory) {
             const us = getCountryMapping('US');
             targetCountry.name = us.name;
             targetCountry.code = us.code;
