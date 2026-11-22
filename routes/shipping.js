@@ -353,6 +353,126 @@ function cartBoxMm(lines) {
     return { length: Math.round(side), width: Math.round(side), height: Math.round(height) };
 }
 
+/**
+ * Split-parcel pricing for heavy carts (Michael, 22 Nov 2026). See the call site in
+ * /carrier-service. Pieces are packed into parcels of at most SPLIT_CAP_KG (a little
+ * under Line-B's 9 kg so a heavier real carton still fits), then evened out.
+ * Returns null when there is nothing to split: cart under the trigger, a single
+ * piece over the cap (it cannot be split), or more than SPLIT_MAX_PARCELS parcels.
+ */
+const SPLIT_TRIGGER_KG = 9;
+const SPLIT_CAP_KG = 8.5;
+const SPLIT_MAX_PARCELS = 6;
+function finishParcel(p) {
+    const byDim = {};
+    for (const it of p.items) {
+        const key = `${it.d}x${it.h}`;
+        byDim[key] = byDim[key] || { d: it.d, h: it.h, pieces: 0 };
+        byDim[key].pieces++;
+    }
+    return { kg: p.kg, box: cartBoxMm(Object.values(byDim)) };
+}
+function packParcels(lines, capKg) {
+    const pieces = [];
+    for (const l of lines) {
+        const n = Math.max(0, Math.round(l.pieces || 0));
+        if (!n || !(l.kg > 0)) continue;
+        const each = l.kg / n;
+        for (let k = 0; k < n; k++) pieces.push({ kg: each, d: l.d, h: l.h });
+    }
+    if (!pieces.length || pieces.some(p => p.kg > capKg)) return null;
+    pieces.sort((a, b) => b.kg - a.kg);
+    const parcels = [];
+    for (const p of pieces) {
+        let target = parcels.find(x => x.kg + p.kg <= capKg + 1e-9);
+        if (!target) { target = { kg: 0, items: [] }; parcels.push(target); }
+        target.kg += p.kg; target.items.push(p);
+    }
+    // even them out: same number of parcels, as equal as the pieces allow
+    // (three 7.2 kg parcels price better than 8.4 + 8.4 + 4.8 on most lines)
+    const even = Array.from({ length: parcels.length }, () => ({ kg: 0, items: [] }));
+    for (const p of pieces) {
+        const lightest = even.reduce((a, b) => (b.kg < a.kg ? b : a));
+        if (lightest.kg + p.kg > capKg + 1e-9) return parcels.map(finishParcel);
+        lightest.kg += p.kg; lightest.items.push(p);
+    }
+    return even.map(finishParcel);
+}
+async function splitParcelRoutes({ shippingService, targetCountry, shopDomain, productInfo, lines, totalKg }) {
+    if (!(totalKg > SPLIT_TRIGGER_KG)) return null;
+    const parcels = packParcels(lines, SPLIT_CAP_KG);
+    if (!parcels || parcels.length < 2 || parcels.length > SPLIT_MAX_PARCELS) return null;
+    // identical parcels are priced once
+    const groups = {};
+    for (const p of parcels) {
+        const key = `${p.kg.toFixed(2)}|${p.box.length}x${p.box.width}x${p.box.height}`;
+        groups[key] = groups[key] || { parcel: p, count: 0 };
+        groups[key].count++;
+    }
+    const priced = await Promise.all(Object.values(groups).map(async (g, i) => {
+        if (i) await new Promise(r => setTimeout(r, 150 * i));
+        const kg = +g.parcel.kg.toFixed(3);
+        const rateKey = rateCacheKey(shopDomain, targetCountry.code, kg, g.parcel.box, productInfo, targetCountry.postcode);
+        const cached = getCachedRates(rateKey);
+        let res = cached ? cached.result : null;
+        if (!res) {
+            res = await shippingService.calculateProductShipping(
+                { title: 'Split parcel', variants: [{ weight: kg, weight_unit: 'kg' }] },
+                [
+                    { namespace: 'custom', key: 'weight_raw_kg_', value: String(kg) },
+                    { namespace: 'custom', key: 'height_raw', value: String(g.parcel.box.height) },
+                    { namespace: 'custom', key: 'largest_diameter_raw', value: String(g.parcel.box.length) }
+                ],
+                targetCountry, 1);
+            if (hasRoutes(res)) setCachedRates(rateKey, res);
+        }
+        return { count: g.count, routes: (res && res.allRoutes) || [] };
+    }));
+    // a route counts only if every parcel group can use it
+    const nameOf = r => r.serviceName || r.service_name || r.channelName || r.channel_name || '';
+    const sums = {};
+    for (const g of priced) {
+        const seen = new Set();
+        for (const r of g.routes) {
+            const name = nameOf(r);
+            if (!name || r.available === false || !(Number(r.totalPrice) > 0) || seen.has(name)) continue;
+            seen.add(name);
+            const t = sums[name] || (sums[name] = { route: r, price: 0, charged: 0, actual: 0, groups: 0, minD: 0, maxD: 0 });
+            t.price += Number(r.totalPrice) * g.count;
+            t.charged += (Number(r.calculateWeight) || 0) * g.count;
+            t.actual += (Number(r.parcelTotalWeight) || 0) * g.count;
+            t.minD = Math.max(t.minD, Number(r.minTimeInTransit) || 0);
+            t.maxD = Math.max(t.maxD, Number(r.maxTimeInTransit) || 0);
+            t.groups++;
+        }
+    }
+    const routes = Object.values(sums).filter(t => t.groups === priced.length).map(t => ({
+        ...t.route,
+        totalPrice: Math.round(t.price * 100) / 100,
+        calculateWeight: t.charged || t.route.calculateWeight,
+        parcelTotalWeight: t.actual || t.route.parcelTotalWeight,
+        minTimeInTransit: t.minD || t.route.minTimeInTransit,
+        maxTimeInTransit: t.maxD || t.route.maxTimeInTransit,
+        splitParcels: parcels.length
+    }));
+    return { parcels, routes };
+}
+function mergeSplitRoutes(oneBox, splitRoutes) {
+    const nameOf = r => r.serviceName || r.service_name || r.channelName || r.channel_name || '';
+    const out = oneBox.slice();
+    const added = [], replaced = [];
+    for (const sr of splitRoutes) {
+        const name = nameOf(sr);
+        const i = out.findIndex(r => nameOf(r) === name);
+        if (i < 0) { out.push(sr); added.push(name); continue; }
+        const cur = out[i];
+        if (cur.available === false || !(Number(cur.totalPrice) > 0) || Number(sr.totalPrice) < Number(cur.totalPrice)) {
+            out[i] = sr; replaced.push(name);
+        }
+    }
+    return { routes: out, added, replaced };
+}
+
 function addProcessingLog(message, data = null) {
     const logEntry = {
         timestamp: new Date().toISOString(),
@@ -1951,6 +2071,39 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             const consolidatedTime = Date.now() - consolidatedStartTime;
             console.log(`🔵 BUCKYDROP CONSOLIDATED RESULT:`, consolidatedResult ? `${consolidatedResult.allRoutes?.length || 0} routes` : 'NULL/ERROR');
             logger.info(`⏱️ Consolidated shipping calculation took: ${consolidatedTime}ms`);
+
+            // SPLIT PARCELS (Michael, 22 Nov 2026, Heff Zhao's 12 x P167888 cart, 21.6 kg):
+            // the cheap air line (USA Air Cargo Preferential Line-B, 10-18 days) takes at
+            // most 9 kg a parcel, so one heavy box only got sea freight or air at 3x the
+            // price. Three 7.2 kg parcels by Line-B were cheaper than sea and a month faster.
+            // When the cart is over SPLIT_TRIGGER_KG and every piece fits a parcel, pack the
+            // pieces into parcels of at most SPLIT_CAP_KG, price each parcel, and for every
+            // route offered on all parcels use the summed price if it beats (or replaces)
+            // the one-box price. The route keeps its name; the rate says how many parcels.
+            try {
+                const split = await splitParcelRoutes({
+                    shippingService, targetCountry, shopDomain, productInfo,
+                    lines: processedItems.map((item, i) => ({
+                        d: dimOf(productDataResults[i] && productDataResults[i].metafields, ['largest_diameter_raw', 'largest_diameter_raw_mm_']),
+                        h: dimOf(productDataResults[i] && productDataResults[i].metafields, ['height_raw', 'height_raw_mm_']),
+                        pieces: (item.quantity || 1) * packQtyFromItem(item),
+                        kg: productDataResults[i] ? productDataResults[i].weightKg : 0
+                    })),
+                    totalKg: combinedWeight
+                });
+                if (split && consolidatedResult && Array.isArray(consolidatedResult.allRoutes)) {
+                    const merged = mergeSplitRoutes(consolidatedResult.allRoutes, split.routes);
+                    addProcessingLog(`📦📦 Split into ${split.parcels.length} parcels`, {
+                        parcels: split.parcels.map(p => ({ kg: +p.kg.toFixed(2), box: p.box })),
+                        added: merged.added, replaced: merged.replaced
+                    });
+                    logger.info(`📦📦 Split parcels: ${split.parcels.length}, routes added ${merged.added.join(', ') || 'none'}, cheaper ${merged.replaced.join(', ') || 'none'}`);
+                    consolidatedResult = { ...consolidatedResult, allRoutes: merged.routes };
+                }
+            } catch (splitError) {
+                logger.warn(`Split parcel pricing failed, keeping the one-box rates: ${splitError.message}`);
+                addProcessingLog(`⚠️ Split parcel pricing failed`, { error: splitError.message });
+            }
             
             // OPTION 2: Calculate individual shipping for each product (with rate limiting protection)
             //
@@ -3213,7 +3366,13 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             const rateEntry = {
                 // Michael, 17 Nov: "hard to digest". Plain carrier name, the credit as its own short sentence first.
                 service_name: route.checkout_name,
-                ...(offCny && isCheapest ? { description: `US$${FREE_SHIP_MAX_USD} shipping credit applied.` } : {}),
+                ...(() => {
+                    const parts = [];
+                    if (offCny && isCheapest) parts.push(`US$${FREE_SHIP_MAX_USD} shipping credit applied.`);
+                    const nParcels = route.route && route.route.splitParcels;
+                    if (nParcels > 1) parts.push(`Ships as ${nParcels} parcels.`);
+                    return parts.length ? { description: parts.join(' ') } : {};
+                })(),
                 service_code: route.service_code,
                 total_price: discCents.toString(), // Ensure total_price is a string in cents
                 currency: route.currency,
