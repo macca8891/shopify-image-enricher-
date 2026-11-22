@@ -192,6 +192,7 @@ function shopifyDeliveryDate(date) {
 // Customer-facing names at checkout (Michael, 17 Nov 2026). Matched against the already-cleaned BuckyDrop name;
 // first match wins. The import tax / duty notes were removed on 18 Nov (Michael: they may be scaring buyers off).
 const CHECKOUT_NAMES = [
+    [/Island/i, 'Island post'],   // US territories (23 Nov 2026), 15 to 28 days: not 'Express'
     [/DHL/i, 'DHL'],
     [/UPS/i, 'UPS'],
     [/FEDEX/i, 'FedEx'],
