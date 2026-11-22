@@ -203,6 +203,30 @@ const CHECKOUT_NAMES = [
     [/Air Cargo|Air Freight/i, 'Standard air'],
     [/Ocean/i, 'Sea freight'],
 ];
+// US territories (Michael, 23 Nov 2026): Shopify sends Puerto Rico as country US + province PR, and BuckyDrop's rate
+// list does not filter by province, so checkout offered mainland-only lines. Parcel PG5122566717001 was returned from
+// a line that "does not serve that destination". Territory addresses only get lines that deliver there: the Island
+// lines ("delivery across the entire territory") and the couriers. Rated as country US + territory name, because
+// BuckyDrop with country PR returns couriers only.
+const US_TERRITORIES = { PR: 'Puerto Rico', VI: 'Virgin Islands', GU: 'Guam', AS: 'American Samoa', MP: 'Northern Mariana Islands' };
+const TERRITORY_ROUTE_RE = /Island|UPS|DHL|FEDEX/i;
+function usTerritory(dest) {
+    if (!dest) return null;
+    const cc = String(dest.country_code || dest.country || '').toUpperCase();
+    if (US_TERRITORIES[cc]) return cc;
+    if (cc !== 'US' && cc !== 'USA' && cc !== 'UNITED STATES') return null;
+    const pc = String(dest.province_code || '').toUpperCase();
+    if (US_TERRITORIES[pc]) return pc;
+    const pn = String(dest.province || '').toLowerCase();
+    const byName = Object.keys(US_TERRITORIES).find(k => US_TERRITORIES[k].toLowerCase() === pn || k.toLowerCase() === pn);
+    if (byName) return byName;
+    const zip = String(dest.postal_code || '').trim();
+    if (/^00[679]\d\d/.test(zip)) return 'PR';           // 006xx, 007xx, 009xx
+    if (/^008[0-5]\d/.test(zip)) return 'VI';             // 008xx
+    if (/^969[1-3]\d/.test(zip)) return 'GU';             // 969xx
+    return null;
+}
+
 function checkoutName(name) {
     const hit = CHECKOUT_NAMES.find(([re]) => re.test(name || ''));
     return hit ? hit[1] : name;
@@ -1446,6 +1470,17 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             provinceCode: destination.province_code || '',
             address: destination.address1 || '',
         };
+        const territory = usTerritory(destination);
+        if (territory) {
+            const us = getCountryMapping('US');
+            targetCountry.name = us.name;
+            targetCountry.code = us.code;
+            targetCountry.buckyDropName = us.buckyDropName;
+            targetCountry.province = US_TERRITORIES[territory];
+            targetCountry.provinceCode = territory;
+            logger.info(`  🏝️ US territory ${territory}: rating as US / ${US_TERRITORIES[territory]}, Island lines and couriers only`);
+            addProcessingLog(`🏝️ US territory ${territory}: Island lines and couriers only`);
+        }
 
         // Get access token for fetching product data from Shopify
         let accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
@@ -2841,6 +2876,15 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
             if (/duties paid|duty-prepaid|DDP/i.test(allAvailableRoutes[i].service_name || '')) {
                 manuallyDisabled[allAvailableRoutes[i].service_name] = 'DUTIES PAID';
                 allAvailableRoutes.splice(i, 1);
+            }
+        }
+
+        if (territory) {
+            for (let i = allAvailableRoutes.length - 1; i >= 0; i--) {
+                if (!TERRITORY_ROUTE_RE.test(allAvailableRoutes[i].service_name || '')) {
+                    manuallyDisabled[allAvailableRoutes[i].service_name] = `NOT ${territory}`;
+                    allAvailableRoutes.splice(i, 1);
+                }
             }
         }
 
