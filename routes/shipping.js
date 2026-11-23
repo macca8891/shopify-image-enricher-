@@ -3426,6 +3426,12 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
                     if (offCny && isCheapest) parts.push(`US$${FREE_SHIP_MAX_USD} shipping credit applied.`);
                     const nParcels = route.route && route.route.splitParcels;
                     if (nParcels > 1) parts.push(`Ships as ${nParcels} parcels.`);
+                    // Michael, 24 Nov 2026: US orders on DHL or UPS carry a duties note (reverses the 18 Nov removal
+                    // for this case only). Not on "duties paid" lines.
+                    const destCc = String(rateData?.destination?.country_code || rateData?.destination?.country || '').toUpperCase();
+                    if (destCc === 'US' && /^(DHL|UPS)\b/.test(route.checkout_name || '') && !/duties paid/i.test(route.checkout_name || '')) {
+                        parts.push('This shipping method has a higher chance of paying import taxes and duties.');
+                    }
                     return parts.length ? { description: parts.join(' ') } : {};
                 })(),
                 service_code: route.service_code,
