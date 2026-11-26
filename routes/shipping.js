@@ -3253,7 +3253,17 @@ router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next
         const uniqueRoutes = [...(autoFiltersEnabled ? finalDeduplicatedRoutes : allAvailableRoutes)];
 
         // Put back any service the merchant force-enabled that the rules removed.
-        const forcedServiceNames = (optionSettings.forcedServices || []).map(t => t.toUpperCase());
+        // An entry may be scoped to one destination with a country prefix, e.g. "IN:YANWEN" (Michael, 26 Nov 2026:
+        // offer Yanwen Air Cargo in India only, shown as plain "Standard air"). Unprefixed entries apply everywhere.
+        const destCountryUpper = String(destCountry || '').toUpperCase();
+        const forcedServiceNames = (optionSettings.forcedServices || [])
+            .map(t => t.toUpperCase())
+            .map(t => {
+                const m = t.match(/^([A-Z]{2}):(.+)$/);
+                if (!m) return t;
+                return m[1] === destCountryUpper ? m[2] : null;
+            })
+            .filter(Boolean);
         const forcedBack = new Set();
         if (forcedServiceNames.length > 0) {
             const alreadyQuoted = new Set(uniqueRoutes.map(r => r.service_name));
