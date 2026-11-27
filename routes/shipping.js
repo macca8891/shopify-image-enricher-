@@ -5,6 +5,7 @@ const ShippingOptionSettings = require('../models/ShippingOptionSettings');
 const logger = require('../utils/logger');
 const ShippingService = require('../services/ShippingService');
 const BuckyDropService = require('../services/BuckyDropService');
+const quoteLog = require('../utils/quoteLog');
 const xml2js = require('xml2js');
 const axios = require('axios');
 const { shopifyApi, ApiVersion } = require('@shopify/shopify-api');
@@ -1248,7 +1249,7 @@ router.get('/rates', async (req, res) => {
  */
 // CRITICAL: Allow ngrok browser warning bypass
 // CRITICAL: Shopify now sends JSON (format: 'json'), not XML
-router.post('/carrier-service', express.json({ limit: '10mb' }), (req, res, next) => {
+router.post('/carrier-service', express.json({ limit: '10mb' }), quoteLog.capture(() => fxCache.rate), (req, res, next) => {
     // Disable compression for this response
     res.set('Content-Encoding', 'identity');
     res.set('ngrok-skip-browser-warning', 'true');
@@ -4067,7 +4068,7 @@ async function runCoverageSweep(shop, list) {
                     }],
                     currency: 'USD'
                 }
-            }, { timeout: 90000 });
+            }, { timeout: 90000 , headers: { 'X-SPM-Source': 'coverage' } });
 
             entry.rates = (quote.data && quote.data.rates ? quote.data.rates.length : 0);
             entry.status = entry.rates > 0 ? 'ok' : 'empty';
@@ -4187,7 +4188,7 @@ router.post('/prewarm', express.json(), async (req, res) => {
                 })),
                 currency: 'USD'
             }
-        }, { timeout: 90000 })
+        }, { timeout: 90000 , headers: { 'X-SPM-Source': 'prewarm' } })
             .then(() => logger.info(`🔥 Prewarmed rates for ${shop} → ${country}`))
             .catch(err => logger.warn(`Prewarm failed for ${country} (harmless): ${err.message}`));
     } catch (error) {
@@ -4232,7 +4233,7 @@ router.post('/estimate', express.json(), async (req, res) => {
                           grams: parseInt(grams, 10) || 0, price: 0, requires_shipping: true }],
                 currency: 'USD'
             }
-        }, { timeout: 60000 });
+        }, { timeout: 60000 , headers: { 'X-SPM-Source': 'pdp' } });
         const fx = await cnyToUsd();
         const rates = ((r.data && r.data.rates) || []).map(x => {
             const amount = parseInt(x.total_price, 10) / 100;
@@ -4244,6 +4245,29 @@ router.post('/estimate', express.json(), async (req, res) => {
     } catch (error) {
         logger.error('estimate error:', error.message);
         res.status(502).json({ error: 'Could not get shipping rates right now' });
+    }
+});
+
+/**
+ * GET /api/shipping/quote-log?since=<ISO>&limit=<n>
+ * Logged shipping quotes for the SPM desk (/shipping-quotes). Oldest first from `since`.
+ * Private: needs the same X-Quotes-Token as /api/quotes.
+ */
+router.get('/quote-log', async (req, res) => {
+    try {
+        const want = process.env.QUOTES_TOKEN;
+        const got = req.get('X-Quotes-Token') || '';
+        if (!want || got !== want) return res.status(401).json({ error: 'token required' });
+        const ShippingQuoteLog = require('../models/ShippingQuoteLog');
+        const since = new Date(req.query.since || 0);
+        const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 500, 1), 2000);
+        const rows = await ShippingQuoteLog.find({ at: { $gt: isNaN(since) ? new Date(0) : since } })
+            .sort({ at: 1 }).limit(limit).lean();
+        res.set('Cache-Control', 'no-store');
+        res.json({ quotes: rows, count: rows.length });
+    } catch (error) {
+        logger.error('quote-log error:', error.message);
+        res.status(500).json({ error: 'quote log unavailable' });
     }
 });
 
@@ -4676,7 +4700,7 @@ router.post('/probe', express.json(), async (req, res) => {
                 }],
                 currency: 'AUD'
             }
-        }, { timeout: 60000 });
+        }, { timeout: 60000 , headers: { 'X-SPM-Source': 'desk' } });
 
         const analysis = lastFilterAnalysis[country.toUpperCase()];
         if (!analysis) {
